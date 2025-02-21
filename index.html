@@ -7,11 +7,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Check authentication
+        if (!localStorage.getItem('isAuthenticated')) {
+            window.location.href = '/login.html';
+        }
+
+        // Add logout function
+        function logout() {
+            localStorage.removeItem('isAuthenticated');
+            window.location.href = '/login.html';
+        }
+    </script>
 </head>
 <body>
     <div id="app">
         <!-- Main Content Area -->
         <main id="main-content">
+            <!-- Add logout button to header -->
+            <div class="global-header">
+                <button onclick="logout()" class="logout-button">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
             <!-- Plan Tab Content -->
             <section id="plan-tab" class="tab-content active">
                 <div class="header">

@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Check authentication
-        if (!localStorage.getItem('isAuthenticated')) {
+        if (!localStorage.getItem('isAuthenticated') && !window.location.pathname.includes('login.html')) {
             window.location.href = '/login.html';
         }
 

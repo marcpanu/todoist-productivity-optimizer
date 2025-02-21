@@ -16,12 +16,11 @@
   ],
   "routes": [
     {
-      "src": "/(.+\\.(?:css|js))",
+      "src": "/(.+\\.(?:css|js|html))",
       "dest": "/$1"
     },
     {
-      "src": "/login",
-      "dest": "/login.html"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",

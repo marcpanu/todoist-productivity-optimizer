@@ -34,48 +34,114 @@
             <!-- Plan Tab Content -->
             <section id="plan-tab" class="tab-content active">
                 <div class="header">
-                    <h1>Daily Plan</h1>
-                    <button onclick="handleGeneratePlan()" class="action-button">
-                        <i class="fas fa-magic"></i> Generate Plan
+                    <h1>Plan</h1>
+                    <button class="action-button">
+                        <i class="fas fa-plus"></i>
                     </button>
                 </div>
-                <div id="tasks-list" class="tasks-container">
-                    <!-- Tasks will be dynamically inserted here -->
+                <div class="filters">
+                    <div class="date-filter">
+                        <button class="date-button active">Today</button>
+                        <button class="date-button">Next 7 Days</button>
+                        <button class="date-button">Custom</button>
+                    </div>
+                    <div class="task-filters">
+                        <button class="filter-button">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                        <button class="sort-button">
+                            <i class="fas fa-sort"></i> Sort
+                        </button>
+                    </div>
+                </div>
+                <div class="content-area">
+                    <div class="generate-plan">
+                        <button onclick="handleGeneratePlan()" class="primary-button">
+                            <i class="fas fa-magic"></i> Generate Daily Plan
+                        </button>
+                    </div>
+                    <div id="tasks-list" class="tasks-list">
+                        <!-- Tasks will be populated here -->
+                    </div>
                 </div>
             </section>
 
             <!-- Review Tab Content -->
             <section id="review-tab" class="tab-content">
                 <div class="header">
-                    <h1>Task Review</h1>
+                    <h1>Review</h1>
+                    <button class="action-button">
+                        <i class="fas fa-sliders"></i>
+                    </button>
                 </div>
-                <div id="report-content" class="report-container">
-                    <!-- Report content will be dynamically inserted here -->
+                <div class="content-area">
+                    <div class="report-options">
+                        <button class="report-button">
+                            <i class="fas fa-chart-bar"></i>
+                            Weekly Summary
+                        </button>
+                        <button class="report-button">
+                            <i class="fas fa-calendar-check"></i>
+                            Monthly Review
+                        </button>
+                        <button class="report-button">
+                            <i class="fas fa-clock"></i>
+                            Custom Period
+                        </button>
+                    </div>
+                    <div id="report-content" class="report-content">
+                        <!-- Report content will be populated here -->
+                    </div>
                 </div>
             </section>
 
             <!-- Email Tab Content -->
             <section id="email-tab" class="tab-content">
                 <div class="header">
-                    <h1>Email Reports</h1>
+                    <h1>Email</h1>
+                    <button class="action-button">
+                        <i class="fas fa-envelope"></i>
+                    </button>
                 </div>
-                <div class="template-list">
-                    <!-- Email templates will be dynamically inserted here -->
+                <div class="content-area">
+                    <div class="email-templates">
+                        <h2>Email Templates</h2>
+                        <div class="template-list">
+                            <!-- Templates will be populated here -->
+                        </div>
+                    </div>
+                    <div class="schedule-settings">
+                        <h2>Schedule Settings</h2>
+                        <div class="schedule-options">
+                            <!-- Schedule options will be populated here -->
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <!-- Trends Tab Content -->
             <section id="trends-tab" class="tab-content">
                 <div class="header">
-                    <h1>Productivity Trends</h1>
+                    <h1>Trends</h1>
+                    <button class="action-button">
+                        <i class="fas fa-download"></i>
+                    </button>
                 </div>
-                <div class="chart-container">
-                    <canvas id="tasksChart"></canvas>
-                </div>
-                <div class="metrics-container">
-                    <div class="metric-card">
-                        <h3>Productivity Score</h3>
-                        <div class="metric-value">0.0</div>
+                <div class="content-area">
+                    <div class="chart-container">
+                        <canvas id="tasksChart"></canvas>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <h3>Tasks Completed</h3>
+                            <p class="metric-value">24</p>
+                            <p class="metric-change positive">+12% this week</p>
+                        </div>
+                        <div class="metric-card">
+                            <h3>Productivity Score</h3>
+                            <p class="metric-value">8.5</p>
+                            <p class="metric-change positive">+0.5 pts</p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -84,11 +150,11 @@
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
             <div class="nav-item active" data-tab="plan-tab">
-                <i class="fas fa-calendar-check"></i>
+                <i class="fas fa-list-check"></i>
                 <span>Plan</span>
             </div>
             <div class="nav-item" data-tab="review-tab">
-                <i class="fas fa-chart-line"></i>
+                <i class="fas fa-clipboard-list"></i>
                 <span>Review</span>
             </div>
             <div class="nav-item" data-tab="email-tab">
@@ -96,7 +162,7 @@
                 <span>Email</span>
             </div>
             <div class="nav-item" data-tab="trends-tab">
-                <i class="fas fa-chart-bar"></i>
+                <i class="fas fa-chart-line"></i>
                 <span>Trends</span>
             </div>
         </nav>

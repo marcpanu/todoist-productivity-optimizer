@@ -15,6 +15,17 @@ const path = require('path');
 // Initialize express app
 const app = express();
 
+// Import routes
+const openaiRouter = require('./openai');
+
+// Middleware to check if user is authenticated
+const isAuthenticated = (req, res, next) => {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.status(401).json({ error: 'Not authenticated' });
+};
+
 // Middleware
 app.use(helmet());
 app.use(morgan('dev'));
@@ -32,6 +43,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from UI directory
 app.use(express.static(path.join(__dirname, '..', 'UI')));
+
+// Mount OpenAI routes
+app.use('/api/ai', isAuthenticated, openaiRouter);
 
 // Session configuration
 const sessionConfig = {
@@ -118,14 +132,6 @@ app.get('/api/auth/todoist/callback',
         res.redirect('/');
     }
 );
-
-// Middleware to check if user is authenticated
-const isAuthenticated = (req, res, next) => {
-    if (req.isAuthenticated()) {
-        return next();
-    }
-    res.status(401).json({ error: 'Not authenticated' });
-};
 
 // Test endpoint to get Todoist user data
 app.get('/api/todoist/user', isAuthenticated, async (req, res) => {

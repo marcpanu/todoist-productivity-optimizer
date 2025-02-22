@@ -47,15 +47,13 @@ app.use(express.static(path.join(__dirname, '..', 'UI')));
 // Session configuration
 const sessionConfig = {
     secret: process.env.SESSION_SECRET || 'dev-secret',
-    resave: true,
-    saveUninitialized: true,
-    store: new session.MemoryStore(),
+    resave: false,
+    saveUninitialized: false,
     proxy: true,
     cookie: {
         secure: true,
         sameSite: 'none',
-        maxAge: 24 * 60 * 60 * 1000,
-        domain: 'todoist-productivity-optimizer.vercel.app'
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 };
 
@@ -68,6 +66,15 @@ app.use(passport.session());
 
 // Mount OpenAI routes
 app.use('/api/ai', isAuthenticated, openaiRouter);
+
+// Auth check endpoint
+app.get('/api/auth/check', (req, res) => {
+    res.json({
+        isAuthenticated: req.isAuthenticated(),
+        user: req.user,
+        session: req.session
+    });
+});
 
 // Initialize passport
 // Passport configuration

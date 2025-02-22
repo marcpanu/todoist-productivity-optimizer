@@ -151,36 +151,72 @@ app.get('/api/todoist/user', isAuthenticated, async (req, res) => {
 });
 
 // Todoist API endpoints
-app.get('/api/todoist/tasks', isAuthenticated, async (req, res) => {
+app.get('/api/todoist/data', isAuthenticated, async (req, res) => {
     try {
-        const response = await axios.get('https://api.todoist.com/rest/v2/tasks', {
+        // Get all resources in one call using sync API
+        const syncResponse = await axios.post('https://api.todoist.com/sync/v9/sync', {
+            sync_token: '*',
+            resource_types: '["projects", "items", "sections", "labels"]'
+        }, {
             headers: {
                 'Authorization': `Bearer ${req.user.accessToken}`
             }
         });
-        res.json(response.data);
-    } catch (error) {
-        console.error('Todoist API Error:', error.response?.data || error.message);
-        res.status(500).json({ 
-            error: 'Failed to fetch Todoist tasks',
-            details: error.response?.data || error.message
-        });
-    }
-});
 
-// Get projects
-app.get('/api/todoist/projects', isAuthenticated, async (req, res) => {
-    try {
-        const response = await axios.get('https://api.todoist.com/rest/v2/projects', {
-            headers: {
-                'Authorization': `Bearer ${req.user.accessToken}`
-            }
+        // Process the data to make it more readable
+        const { projects, items, sections, labels } = syncResponse.data;
+
+        // Create maps for quick lookups
+        const projectMap = {};
+        projects.forEach(project => {
+            projectMap[project.id] = project.name;
         });
-        res.json(response.data);
+
+        const sectionMap = {};
+        sections.forEach(section => {
+            sectionMap[section.id] = {
+                name: section.name,
+                projectId: section.project_id
+            };
+        });
+
+        const labelMap = {};
+        labels.forEach(label => {
+            labelMap[label.id] = label.name;
+        });
+
+        // Enhance tasks with readable project and section names
+        const enhancedTasks = items.map(task => ({
+            ...task,
+            project_name: projectMap[task.project_id] || 'Unknown Project',
+            section_name: task.section_id ? sectionMap[task.section_id]?.name : null,
+            label_names: task.labels?.map(labelId => labelMap[labelId]) || []
+        }));
+
+        res.json({
+            tasks: enhancedTasks,
+            projects: projects.map(p => ({
+                id: p.id,
+                name: p.name,
+                color: p.color,
+                view_style: p.view_style
+            })),
+            sections: sections.map(s => ({
+                id: s.id,
+                name: s.name,
+                project_id: s.project_id,
+                project_name: projectMap[s.project_id]
+            })),
+            labels: labels.map(l => ({
+                id: l.id,
+                name: l.name,
+                color: l.color
+            }))
+        });
     } catch (error) {
         console.error('Todoist API Error:', error.response?.data || error.message);
         res.status(500).json({ 
-            error: 'Failed to fetch projects',
+            error: 'Failed to fetch Todoist data',
             details: error.response?.data || error.message
         });
     }

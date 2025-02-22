@@ -1,7 +1,5 @@
 require('dotenv').config({
-    path: process.env.NODE_ENV === 'production' 
-        ? '.env.vercel'
-        : '.env.local'
+    path: '.env'
 });
 
 const express = require('express');
@@ -21,9 +19,7 @@ app.use(helmet());
 app.use(morgan('dev'));
 
 const corsOptions = {
-    origin: process.env.NODE_ENV === 'production'
-        ? 'https://todoist-productivity-optimizer.vercel.app'
-        : 'http://localhost:3000',
+    origin: 'https://todoist-productivity-optimizer.vercel.app',
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -41,20 +37,14 @@ const sessionConfig = {
     store: new session.MemoryStore(),
     proxy: true,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: true,
+        sameSite: 'none',
         maxAge: 24 * 60 * 60 * 1000,
-        domain: process.env.NODE_ENV === 'production' 
-            ? 'todoist-productivity-optimizer.vercel.app'
-            : 'localhost'
+        domain: 'todoist-productivity-optimizer.vercel.app'
     }
 };
 
-if (process.env.NODE_ENV === 'production') {
-    app.set('trust proxy', 1);
-}
-
-app.use(session(sessionConfig));
+app.set('trust proxy', 1);
 
 // Initialize passport
 app.use(passport.initialize());

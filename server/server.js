@@ -33,9 +33,14 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
     saveUninitialized: false,
+    proxy: true, // Trust the reverse proxy
     cookie: {
         secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        domain: process.env.NODE_ENV === 'production' 
+            ? '.vercel.app'
+            : 'localhost'
     }
 }));
 
@@ -105,6 +110,15 @@ app.get('/api/todoist/user', isAuthenticated, async (req, res) => {
             details: error.response?.data || error.message
         });
     }
+});
+
+// Debug endpoint to check session
+app.get('/api/debug/session', (req, res) => {
+    res.json({
+        isAuthenticated: req.isAuthenticated(),
+        user: req.user,
+        session: req.session
+    });
 });
 
 // Health check endpoint

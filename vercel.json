@@ -16,7 +16,8 @@
       "dest": "/server/server.js"
     },
     {
-      "handle": "filesystem"
+      "src": "^/(.+\\.(js|css|html))$",
+      "dest": "/$1"
     },
     {
       "src": "/(.*)",

@@ -60,10 +60,15 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// API Routes - these need to come BEFORE static file serving
-app.use('/api/auth', authRoutes);
+// Create an API router
+const apiRouter = express.Router();
+app.use('/api', apiRouter);
 
-app.get('/api/health', (req, res) => {
+// Mount auth routes on API router
+apiRouter.use('/auth', authRoutes);
+
+// Health check endpoint
+apiRouter.get('/health', (req, res) => {
     res.json({ 
         status: 'OK',
         timestamp: new Date().toISOString(),
@@ -75,12 +80,11 @@ app.get('/api/health', (req, res) => {
 app.use(express.static(path.join(__dirname, '../UI')));
 
 // Serve index.html for client-side routing
-app.get('*', (req, res, next) => {
-    // Don't handle /api routes here
-    if (req.path.startsWith('/api/')) {
-        return next();
+app.get('*', (req, res) => {
+    // Only serve index.html for non-API routes
+    if (!req.path.startsWith('/api/')) {
+        res.sendFile(path.join(__dirname, '../UI/index.html'));
     }
-    res.sendFile(path.join(__dirname, '../UI/index.html'));
 });
 
 // Error handling

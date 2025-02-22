@@ -13,11 +13,16 @@
     "routes": [
         {
             "src": "/api/(.*)",
-            "dest": "server/server.js"
+            "dest": "/server/server.js"
         },
         {
-            "src": "/(.*)",
-            "dest": "UI/$1"
+            "src": "/((?!api/.*).*)",
+            "dest": "/UI/$1",
+            "continue": true
+        },
+        {
+            "src": "/((?!api/.*).*)",
+            "dest": "/UI/index.html"
         }
     ],
     "env": {

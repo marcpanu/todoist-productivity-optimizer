@@ -1,0 +1,179 @@
+// DOM Elements
+const mainContent = document.getElementById('main-content');
+const navItems = document.querySelectorAll('.nav-item');
+const tasksChart = document.getElementById('tasksChart');
+
+// State Management
+let currentTab = 'plan-tab';
+
+// Navigation Handler
+function handleNavigation(event) {
+    const targetTab = event.currentTarget.dataset.tab;
+    if (targetTab === currentTab) return;
+
+    // Update active states
+    document.querySelector(`.nav-item[data-tab="${currentTab}"]`).classList.remove('active');
+    document.getElementById(currentTab).classList.remove('active');
+    
+    event.currentTarget.classList.add('active');
+    document.getElementById(targetTab).classList.add('active');
+    
+    currentTab = targetTab;
+
+    // Initialize tab-specific content
+    if (targetTab === 'trends-tab') {
+        initializeTrendsChart();
+    }
+}
+
+// Initialize Chart
+function initializeTrendsChart() {
+    if (!tasksChart) return;
+
+    const ctx = tasksChart.getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Tasks Completed',
+                data: [12, 19, 3, 5, 2, 3, 7],
+                borderColor: '#e44332',
+                tension: 0.4,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        display: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Server Communication Functions
+function handleGeneratePlan() {
+    google.script.run
+        .withSuccessHandler(displayPlan)
+        .withFailureHandler(handleError)
+        .generateDailyPlan();
+}
+
+function handleGenerateReport(type) {
+    google.script.run
+        .withSuccessHandler(displayReport)
+        .withFailureHandler(handleError)
+        .generateReport(type);
+}
+
+function loadTasks() {
+    google.script.run
+        .withSuccessHandler(displayTasks)
+        .withFailureHandler(handleError)
+        .getTasks();
+}
+
+function loadEmailTemplates() {
+    google.script.run
+        .withSuccessHandler(displayEmailTemplates)
+        .withFailureHandler(handleError)
+        .getEmailTemplates();
+}
+
+// Display Functions
+function displayPlan(plan) {
+    const tasksList = document.getElementById('tasks-list');
+    tasksList.innerHTML = `
+        <div class="plan-summary">
+            <p>${plan.summary}</p>
+            <ul>
+                ${plan.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+            </ul>
+        </div>
+    `;
+}
+
+function displayReport(report) {
+    const reportContent = document.getElementById('report-content');
+    reportContent.innerHTML = `
+        <div class="report">
+            <h2>${report.title}</h2>
+            <p>${report.content}</p>
+            <div class="report-metrics">
+                <div>Tasks Completed: ${report.metrics.tasksCompleted}</div>
+                <div>Productivity Score: ${report.metrics.productivityScore}</div>
+                <div>Overdue Tasks: ${report.metrics.overdueTasks}</div>
+            </div>
+        </div>
+    `;
+}
+
+function displayTasks(tasks) {
+    const tasksList = document.getElementById('tasks-list');
+    tasksList.innerHTML = tasks.map(task => `
+        <div class="task-item" data-id="${task.id}">
+            <div class="task-content">
+                <span class="task-title">${task.title}</span>
+                <span class="task-due">${task.due}</span>
+            </div>
+            <div class="task-priority">P${task.priority}</div>
+        </div>
+    `).join('');
+}
+
+function displayEmailTemplates(templates) {
+    const templateList = document.querySelector('.template-list');
+    templateList.innerHTML = templates.map(template => `
+        <div class="template-item">
+            <div class="template-info">
+                <span class="template-name">${template.name}</span>
+                <span class="template-schedule">${template.schedule}</span>
+            </div>
+            <button onclick="handleSendEmail(${template.id})" class="send-button">
+                Send Now
+            </button>
+        </div>
+    `).join('');
+}
+
+function handleError(error) {
+    console.error('Error:', error);
+    // TODO: Implement proper error handling UI
+}
+
+// Initialize Application
+function initializeApp() {
+    // Add event listeners to navigation items
+    navItems.forEach(item => {
+        item.addEventListener('click', handleNavigation);
+    });
+
+    // Load initial data
+    loadTasks();
+    loadEmailTemplates();
+
+    // Initialize first tab
+    if (currentTab === 'trends-tab') {
+        initializeTrendsChart();
+    }
+}
+
+// Start the application
+document.addEventListener('DOMContentLoaded', initializeApp);

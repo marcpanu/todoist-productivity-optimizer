@@ -60,10 +60,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Serve static files from the UI directory
-app.use(express.static(path.join(__dirname, '../UI')));
-
-// API Routes
+// API Routes - these need to come BEFORE static file serving
 app.use('/api/auth', authRoutes);
 
 app.get('/api/health', (req, res) => {
@@ -74,8 +71,15 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Serve index.html for all other routes
-app.get('*', (req, res) => {
+// Static file serving and catch-all route - these come AFTER API routes
+app.use(express.static(path.join(__dirname, '../UI')));
+
+// Serve index.html for client-side routing
+app.get('*', (req, res, next) => {
+    // Don't handle /api routes here
+    if (req.path.startsWith('/api/')) {
+        return next();
+    }
     res.sendFile(path.join(__dirname, '../UI/index.html'));
 });
 

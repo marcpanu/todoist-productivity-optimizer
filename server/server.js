@@ -34,7 +34,10 @@ const corsOptions = {
     origin: 'https://todoist-productivity-optimizer.vercel.app',
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
+    preflightContinue: true,
+    optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
@@ -50,14 +53,30 @@ const sessionConfig = {
     resave: false,
     saveUninitialized: false,
     proxy: true,
+    name: 'todoist.sid', // Specific name for our session cookie
     cookie: {
         secure: true,
         sameSite: 'none',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        path: '/',
+        domain: '.vercel.app', // Allow subdomains
+        httpOnly: true
     }
 };
 
 app.set('trust proxy', 1);
+
+// Debug middleware for session issues
+app.use((req, res, next) => {
+    console.log('Session Debug:', {
+        sessionId: req.sessionID,
+        hasSession: !!req.session,
+        isAuthenticated: req.isAuthenticated?.(),
+        cookies: req.cookies,
+        path: req.path
+    });
+    next();
+});
 
 // Initialize passport and session
 app.use(session(sessionConfig));

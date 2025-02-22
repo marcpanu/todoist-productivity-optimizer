@@ -35,7 +35,9 @@ app.use(helmet({
 })); // Security headers
 app.use(morgan('dev')); // Logging
 app.use(cors({
-    origin: 'http://localhost:5000', // Your frontend URL
+    origin: process.env.NODE_ENV === 'production'
+        ? 'https://todoist-productivity-optimizer.vercel.app'
+        : 'http://localhost:3000',
     credentials: true,
 }));
 app.use(express.json());
@@ -46,8 +48,10 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    proxy: process.env.NODE_ENV === 'production', // Trust the reverse proxy
     cookie: {
         secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));

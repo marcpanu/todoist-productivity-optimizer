@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "*.{html,js,css}",
+      "src": "UI/**",
       "use": "@vercel/static"
     }
   ],
@@ -17,11 +17,11 @@
     },
     {
       "src": "^/(.+\\.(js|css|html))$",
-      "dest": "/$1"
+      "dest": "/UI/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/UI/index.html"
     }
   ]
 }

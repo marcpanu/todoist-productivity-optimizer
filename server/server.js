@@ -10,6 +10,7 @@ const OAuth2Strategy = require('passport-oauth2');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const axios = require('axios');
+const path = require('path');
 
 // Initialize express app
 const app = express();
@@ -30,7 +31,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from UI directory
-app.use(express.static('UI'));
+app.use(express.static(path.join(__dirname, '..', 'UI')));
 
 // Session configuration
 const sessionConfig = {

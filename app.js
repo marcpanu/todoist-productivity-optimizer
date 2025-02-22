@@ -1,19 +1,116 @@
-import {
-    TodoistService,
-    OpenAIService,
-    GoogleCalendarService,
-    EmailService,
-    AnalyticsService
-} from './services.js';
+// API Service Configuration
+const API_CONFIG = {
+    TODOIST_API_URL: 'https://api.todoist.com/rest/v2',
+    OPENAI_API_URL: 'https://api.openai.com/v1',
+    GMAIL_API_URL: 'https://gmail.googleapis.com/gmail/v1',
+    GCAL_API_URL: 'https://www.googleapis.com/calendar/v3'
+};
+
+// Services
+class TodoistService {
+    constructor(apiToken) {
+        this.apiToken = apiToken;
+    }
+
+    async getTasks(filters = {}) {
+        const response = await fetch(`${API_CONFIG.TODOIST_API_URL}/tasks`, {
+            headers: {
+                'Authorization': `Bearer ${this.apiToken}`
+            }
+        });
+        return await response.json();
+    }
+
+    async getCompletedTasks(filters = {}) {
+        const response = await fetch(`${API_CONFIG.TODOIST_API_URL}/completed/tasks`, {
+            headers: {
+                'Authorization': `Bearer ${this.apiToken}`
+            }
+        });
+        return await response.json();
+    }
+}
+
+class OpenAIService {
+    constructor(apiKey) {
+        this.apiKey = apiKey;
+    }
+
+    async generatePlan(tasks, preferences) {
+        const response = await fetch(`${API_CONFIG.OPENAI_API_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a productivity assistant helping to organize tasks and create daily plans."
+                    },
+                    {
+                        role: "user",
+                        content: `Please create a daily plan based on these tasks: ${JSON.stringify(tasks)}`
+                    }
+                ]
+            })
+        });
+        return await response.json();
+    }
+}
+
+class AnalyticsService {
+    constructor() {
+        this.chartInstances = new Map();
+    }
+
+    createTaskCompletionChart(containerId, data) {
+        const ctx = document.getElementById(containerId).getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Tasks Completed',
+                    data: data.values,
+                    borderColor: '#e44332',
+                    tension: 0.4,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        this.chartInstances.set(containerId, chart);
+        return chart;
+    }
+}
 
 // Initialize Services
 const todoistService = new TodoistService(localStorage.getItem('todoist_token'));
 const openaiService = new OpenAIService(localStorage.getItem('openai_token'));
-const calendarService = new GoogleCalendarService(
-    localStorage.getItem('google_api_key'),
-    localStorage.getItem('google_client_id')
-);
-const emailService = new EmailService(localStorage.getItem('gmail_token'));
 const analyticsService = new AnalyticsService();
 
 // DOM Elements
@@ -25,10 +122,9 @@ const tasksChart = document.getElementById('tasksChart');
 let currentTab = 'plan-tab';
 let tasks = [];
 let completedTasks = [];
-let events = [];
 
 // Navigation Handler
-function handleNavigation(event) {
+window.handleNavigation = function(event) {
     const targetTab = event.currentTarget.dataset.tab;
     if (targetTab === currentTab) return;
 
@@ -69,13 +165,14 @@ async function initializePlanTab() {
         `).join('');
     } catch (error) {
         console.error('Error loading tasks:', error);
+        tasksList.innerHTML = '<div class="error">Error loading tasks. Please check your Todoist API token.</div>';
     }
 }
 
 async function initializeReviewTab() {
     try {
         completedTasks = await todoistService.getCompletedTasks();
-        const insights = await openaiService.generateInsights(completedTasks, {
+        const insights = await openaiService.generatePlan(completedTasks, {
             totalTasks: tasks.length,
             completedTasks: completedTasks.length
         });
@@ -99,6 +196,7 @@ async function initializeReviewTab() {
         `;
     } catch (error) {
         console.error('Error generating review:', error);
+        reportContent.innerHTML = '<div class="error">Error generating review. Please check your OpenAI API key.</div>';
     }
 }
 
@@ -116,7 +214,7 @@ async function initializeEmailTab() {
                 <span class="template-name">${template.name}</span>
                 <span class="template-schedule">${template.schedule}</span>
             </div>
-            <button onclick="window.handleSendEmail(${template.id})" class="send-button">
+            <button onclick="handleSendEmail(${template.id})" class="send-button">
                 Send Now
             </button>
         </div>
@@ -128,50 +226,31 @@ async function initializeTrendsTab() {
         const today = new Date();
         const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
         
-        // Get completed tasks for the last week
         const weeklyTasks = await todoistService.getCompletedTasks({
             since: lastWeek.toISOString()
         });
         
-        // Group tasks by day
         const tasksByDay = weeklyTasks.reduce((acc, task) => {
             const date = new Date(task.completed_date).toLocaleDateString();
             acc[date] = (acc[date] || 0) + 1;
             return acc;
         }, {});
         
-        // Create chart data
-        const chartData = {
-            labels: Object.keys(tasksByDay),
-            datasets: [{
-                label: 'Tasks Completed',
-                data: Object.values(tasksByDay),
-                borderColor: '#e44332',
-                tension: 0.4,
-                fill: false
-            }]
-        };
-        
-        // Update or create chart
         if (!tasksChart) return;
         
-        const ctx = tasksChart.getContext('2d');
         analyticsService.createTaskCompletionChart('tasksChart', {
-            labels: chartData.labels,
-            values: chartData.datasets[0].data
+            labels: Object.keys(tasksByDay),
+            values: Object.values(tasksByDay)
         });
-        
-        // Update metrics
-        const productivityScore = analyticsService.calculateProductivityScore([...tasks, ...weeklyTasks]);
-        document.querySelector('.metric-value').textContent = productivityScore;
         
     } catch (error) {
         console.error('Error initializing trends:', error);
+        document.querySelector('.chart-container').innerHTML = '<div class="error">Error loading trends. Please check your API token.</div>';
     }
 }
 
 // Event Handlers
-async function handleGeneratePlan() {
+window.handleGeneratePlan = async function() {
     try {
         const plan = await openaiService.generatePlan(tasks, {
             preferredWorkingHours: '9:00-17:00',
@@ -186,68 +265,21 @@ async function handleGeneratePlan() {
         `;
     } catch (error) {
         console.error('Error generating plan:', error);
+        tasksList.innerHTML = '<div class="error">Error generating plan. Please check your OpenAI API key.</div>';
     }
 }
 
-async function handleSendEmail(templateId) {
-    try {
-        const template = await getEmailTemplate(templateId);
-        await emailService.sendEmail(
-            localStorage.getItem('user_email'),
-            template.subject,
-            template.content
-        );
-        alert('Email sent successfully!');
-    } catch (error) {
-        console.error('Error sending email:', error);
-        alert('Failed to send email. Please try again.');
-    }
-}
-
-// Helper Functions
-function getEmailTemplate(templateId) {
-    // This would typically come from a server, but for now we'll use static templates
-    const templates = {
-        1: {
-            subject: 'Daily Productivity Summary',
-            content: `
-                <h1>Your Daily Summary</h1>
-                <p>Tasks completed today: ${completedTasks.length}</p>
-                <p>Upcoming tasks: ${tasks.length}</p>
-            `
-        },
-        2: {
-            subject: 'Weekly Productivity Report',
-            content: `
-                <h1>Your Weekly Report</h1>
-                <p>Weekly progress overview...</p>
-            `
-        },
-        3: {
-            subject: 'Monthly Productivity Review',
-            content: `
-                <h1>Your Monthly Review</h1>
-                <p>Monthly achievements and insights...</p>
-            `
-        }
-    };
-    return templates[templateId];
+window.handleSendEmail = async function(templateId) {
+    alert('Email feature coming soon!');
 }
 
 // Initialize Application
-function initializeApp() {
+document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners to navigation items
     navItems.forEach(item => {
-        item.addEventListener('click', handleNavigation);
+        item.addEventListener('click', window.handleNavigation);
     });
 
     // Initialize first tab
     initializePlanTab();
-}
-
-// Expose functions to window for HTML onclick handlers
-window.handleGeneratePlan = handleGeneratePlan;
-window.handleSendEmail = handleSendEmail;
-
-// Start the application
-document.addEventListener('DOMContentLoaded', initializeApp);
+});

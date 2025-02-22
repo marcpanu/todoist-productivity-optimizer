@@ -1,14 +1,26 @@
 {
-  "name": "productivity-optimizer",
+  "name": "todoist-productivity-optimizer",
   "version": "1.0.0",
-  "description": "A personal productivity optimizer integrating Todoist and other services",
-  "main": "app.js",
+  "description": "Productivity Optimizer with Todoist Integration",
+  "main": "server/server.js",
   "scripts": {
-    "start": "serve -s .",
-    "dev": "serve -s ."
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
   },
   "dependencies": {
-    "serve": "^14.2.1"
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "helmet": "^7.0.0",
+    "mongoose": "^7.0.3",
+    "morgan": "^1.10.0",
+    "passport": "^0.6.0",
+    "passport-oauth2": "^1.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
   },
   "engines": {
     "node": ">=18.0.0"

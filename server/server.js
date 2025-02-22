@@ -150,6 +150,24 @@ app.get('/api/todoist/user', isAuthenticated, async (req, res) => {
     }
 });
 
+// Test endpoint to get Todoist tasks
+app.get('/api/todoist/tasks', isAuthenticated, async (req, res) => {
+    try {
+        const response = await axios.get('https://api.todoist.com/rest/v2/tasks', {
+            headers: {
+                'Authorization': `Bearer ${req.user.accessToken}`
+            }
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Todoist API Error:', error.response?.data || error.message);
+        res.status(500).json({ 
+            error: 'Failed to fetch Todoist tasks',
+            details: error.response?.data || error.message
+        });
+    }
+});
+
 // Logout endpoint
 app.post('/api/auth/logout', (req, res) => {
     req.logout((err) => {

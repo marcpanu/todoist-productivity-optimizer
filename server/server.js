@@ -17,6 +17,7 @@ const app = express();
 
 // Import routes
 const openaiRouter = require('./openai');
+const googleRouter = require('./google');
 
 // Middleware to check if user is authenticated
 const isAuthenticated = (req, res, next) => {
@@ -83,15 +84,20 @@ app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Mount OpenAI routes
+// Mount API routes
 app.use('/api/ai', isAuthenticated, openaiRouter);
+app.use('/api/google', isAuthenticated, googleRouter);
 
 // Auth check endpoint
 app.get('/api/auth/check', (req, res) => {
     res.json({
         isAuthenticated: req.isAuthenticated(),
         user: req.user,
-        session: req.session
+        session: req.session,
+        connections: {
+            todoist: !!req.user?.id,
+            google: !!req.user?.googleId
+        }
     });
 });
 

@@ -111,43 +111,116 @@ class AnalyticsService {
 // Function to check Todoist connection status
 async function checkTodoistConnection() {
     try {
-        const response = await fetch('/api/debug/session');
+        const response = await fetch('/api/todoist/user', {
+            credentials: 'include'
+        });
         const data = await response.json();
         
-        const todoistStatus = document.getElementById('todoist-status');
-        const connectButton = document.getElementById('todoist-connect');
-        const disconnectButton = document.getElementById('todoist-disconnect');
+        const status = document.getElementById('todoist-status');
+        const connectBtn = document.getElementById('todoist-connect');
+        const disconnectBtn = document.getElementById('todoist-disconnect');
         
-        if (data.isAuthenticated && data.user) {
-            todoistStatus.textContent = 'Connected';
-            todoistStatus.className = 'connected';
-            connectButton.style.display = 'none';
-            disconnectButton.style.display = 'flex';
+        if (response.ok) {
+            status.textContent = 'Connected';
+            status.classList.add('connected');
+            connectBtn.style.display = 'none';
+            disconnectBtn.style.display = 'block';
         } else {
-            todoistStatus.textContent = 'Not Connected';
-            todoistStatus.className = 'disconnected';
-            connectButton.style.display = 'flex';
-            disconnectButton.style.display = 'none';
+            status.textContent = 'Not Connected';
+            status.classList.remove('connected');
+            connectBtn.style.display = 'block';
+            disconnectBtn.style.display = 'none';
         }
     } catch (error) {
         console.error('Error checking Todoist connection:', error);
     }
 }
 
-// Function to handle Todoist disconnect
-async function handleTodoistDisconnect() {
+// Function to check Google connection status
+async function checkGoogleConnection() {
     try {
-        const response = await fetch('/api/auth/logout', {
-            method: 'POST'
+        const response = await fetch('/api/google/status', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        const calendarStatus = document.getElementById('google-status');
+        const calendarConnectBtn = document.getElementById('google-connect');
+        const calendarDisconnectBtn = document.getElementById('google-disconnect');
+        
+        const gmailStatus = document.getElementById('gmail-status');
+        const gmailConnectBtn = document.getElementById('gmail-connect');
+        const gmailDisconnectBtn = document.getElementById('gmail-disconnect');
+        
+        if (data.connected) {
+            // Update Calendar status
+            calendarStatus.textContent = 'Connected';
+            calendarStatus.classList.add('connected');
+            calendarConnectBtn.style.display = 'none';
+            calendarDisconnectBtn.style.display = 'block';
+            
+            // Update Gmail status
+            gmailStatus.textContent = 'Connected';
+            gmailStatus.classList.add('connected');
+            gmailConnectBtn.style.display = 'none';
+            gmailDisconnectBtn.style.display = 'block';
+        } else {
+            // Update Calendar status
+            calendarStatus.textContent = 'Not Connected';
+            calendarStatus.classList.remove('connected');
+            calendarConnectBtn.style.display = 'block';
+            calendarDisconnectBtn.style.display = 'none';
+            
+            // Update Gmail status
+            gmailStatus.textContent = 'Not Connected';
+            gmailStatus.classList.remove('connected');
+            gmailConnectBtn.style.display = 'block';
+            gmailDisconnectBtn.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error checking Google connection:', error);
+    }
+}
+
+// Function to handle Todoist connection
+function connectTodoist() {
+    window.location.href = '/api/auth/todoist';
+}
+
+// Function to handle Google connection
+function connectGoogle() {
+    window.location.href = '/api/google/auth';
+}
+
+// Function to handle Todoist disconnection
+async function disconnectTodoist() {
+    try {
+        const response = await fetch('/api/todoist/disconnect', {
+            method: 'POST',
+            credentials: 'include'
         });
         
         if (response.ok) {
-            window.location.reload();
-        } else {
-            console.error('Failed to disconnect from Todoist');
+            checkTodoistConnection();
         }
     } catch (error) {
-        console.error('Error disconnecting from Todoist:', error);
+        console.error('Error disconnecting Todoist:', error);
+    }
+}
+
+// Function to handle Google disconnection
+async function disconnectGoogle() {
+    try {
+        const response = await fetch('/api/google/disconnect', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            checkGoogleConnection();
+        }
+    } catch (error) {
+        console.error('Error disconnecting Google:', error);
     }
 }
 
@@ -316,22 +389,51 @@ window.handleSendEmail = async function(templateId) {
     alert('Email feature coming soon!');
 }
 
-// Check Todoist connection status when the profile tab is shown
+// Add event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    const navItems = document.querySelectorAll('.nav-item');
-    
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            if (item.dataset.tab === 'profile-tab') {
+    // Check connection status when the profile tab is shown
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.target.id === 'profile-tab' && mutation.target.classList.contains('active')) {
                 checkTodoistConnection();
+                checkGoogleConnection();
             }
         });
     });
+
+    const profileTab = document.getElementById('profile-tab');
+    observer.observe(profileTab, { attributes: true, attributeFilter: ['class'] });
+
+    // Add click handlers for connection buttons
+    document.getElementById('todoist-connect').addEventListener('click', connectTodoist);
+    document.getElementById('todoist-disconnect').addEventListener('click', disconnectTodoist);
+    document.getElementById('google-connect').addEventListener('click', connectGoogle);
+    document.getElementById('google-disconnect').addEventListener('click', disconnectGoogle);
+    document.getElementById('gmail-connect').addEventListener('click', connectGoogle);
+    document.getElementById('gmail-disconnect').addEventListener('click', disconnectGoogle);
+
+    // Tab switching logic
+    const tabs = document.querySelectorAll('.nav-item');
+    const contents = document.querySelectorAll('.tab-content');
     
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from all tabs and contents
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            tab.classList.add('active');
+            const contentId = tab.dataset.tab;
+            document.getElementById(contentId).classList.add('active');
+        });
+    });
+
     // Initial check if we're on the profile tab
     const currentTab = document.querySelector('.nav-item.active');
     if (currentTab && currentTab.dataset.tab === 'profile-tab') {
         checkTodoistConnection();
+        checkGoogleConnection();
     }
 
     // Add event listeners to navigation items

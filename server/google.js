@@ -4,16 +4,23 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { google } = require('googleapis');
 const router = express.Router();
 
-// Initialize Google OAuth2 client
-const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-);
+// Initialize OAuth2 client
+function getOAuth2Client() {
+    return new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+    );
+}
 
-// Initialize API clients
-const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+// Initialize API clients on demand
+function getCalendarClient() {
+    return google.calendar({ version: 'v3', auth: getOAuth2Client() });
+}
+
+function getGmailClient() {
+    return google.gmail({ version: 'v1', auth: getOAuth2Client() });
+}
 
 // Google OAuth2 strategy
 passport.use('google', new GoogleStrategy({
@@ -29,6 +36,7 @@ passport.use('google', new GoogleStrategy({
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         // Store tokens
+        const oauth2Client = getOAuth2Client();
         oauth2Client.setCredentials({
             access_token: accessToken,
             refresh_token: refreshToken
@@ -75,6 +83,14 @@ router.get('/auth/callback',
 // Calendar endpoints
 router.get('/calendar/events', async (req, res) => {
     try {
+        const calendar = getCalendarClient();
+        // Set credentials from user session
+        const oauth2Client = getOAuth2Client();
+        oauth2Client.setCredentials({
+            access_token: req.user.accessToken,
+            refresh_token: req.user.refreshToken
+        });
+
         const response = await calendar.events.list({
             calendarId: 'primary',
             timeMin: new Date().toISOString(),
@@ -92,6 +108,14 @@ router.get('/calendar/events', async (req, res) => {
 // Gmail endpoints
 router.get('/gmail/messages', async (req, res) => {
     try {
+        const gmail = getGmailClient();
+        // Set credentials from user session
+        const oauth2Client = getOAuth2Client();
+        oauth2Client.setCredentials({
+            access_token: req.user.accessToken,
+            refresh_token: req.user.refreshToken
+        });
+
         const response = await gmail.users.messages.list({
             userId: 'me',
             maxResults: 10,

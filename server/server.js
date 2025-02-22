@@ -2,22 +2,30 @@ require('dotenv').config({
     path: '.env'
 });
 
+// Import dependencies
 const express = require('express');
-const cors = require('cors');
 const session = require('express-session');
 const passport = require('passport');
-const OAuth2Strategy = require('passport-oauth2');
-const helmet = require('helmet');
+const cors = require('cors');
 const morgan = require('morgan');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const OAuth2Strategy = require('passport-oauth2').Strategy;
 const axios = require('axios');
 const path = require('path');
-
-// Initialize express app
-const app = express();
 
 // Import routes
 const openaiRouter = require('./openai');
 const googleRouter = require('./google');
+
+// Initialize express app
+const app = express();
+
+// Configure rate limiting
+const limiter = rateLimit({
+    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
+    max: process.env.RATE_LIMIT_MAX_REQUESTS || 50
+});
 
 // Middleware to check if user is authenticated
 const isAuthenticated = (req, res, next) => {
@@ -30,9 +38,13 @@ const isAuthenticated = (req, res, next) => {
 // Middleware
 app.use(helmet());
 app.use(morgan('dev'));
+app.use(limiter);
 
+// CORS configuration
 const corsOptions = {
-    origin: 'https://todoist-productivity-optimizer.vercel.app',
+    origin: process.env.NODE_ENV === 'production' 
+        ? 'https://todoist-productivity-optimizer.vercel.app'
+        : 'http://localhost:3000',
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],

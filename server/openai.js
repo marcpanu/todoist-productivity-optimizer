@@ -26,16 +26,32 @@ const handleAIError = (error, req, res, next) => {
         // OpenAI API error
         const status = error.response.status || 500;
         const message = error.response.data?.error?.message || 'An error occurred with the AI service';
+        console.error('OpenAI API Error Details:', {
+            status,
+            message,
+            data: error.response.data
+        });
         res.status(status).json({ error: message });
     } else {
         // Other errors
-        res.status(500).json({ error: 'An unexpected error occurred' });
+        console.error('Unexpected Error:', error);
+        res.status(500).json({ error: error.message || 'An unexpected error occurred' });
     }
 };
 
 // Test endpoint for basic completions
 router.post('/test', async (req, res, next) => {
     try {
+        // Log authentication status
+        console.log('Auth status:', {
+            isAuthenticated: req.isAuthenticated(),
+            user: req.user
+        });
+
+        if (!process.env.OPENAI_API_KEY) {
+            throw new Error('OpenAI API key is not configured');
+        }
+
         const completion = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
             messages: [
@@ -50,6 +66,7 @@ router.post('/test', async (req, res, next) => {
             usage: completion.usage
         });
     } catch (error) {
+        console.error('Test endpoint error:', error);
         next(error);
     }
 });
@@ -57,6 +74,16 @@ router.post('/test', async (req, res, next) => {
 // Generate daily plan based on tasks
 router.post('/generate-plan', async (req, res, next) => {
     try {
+        // Log authentication status
+        console.log('Auth status:', {
+            isAuthenticated: req.isAuthenticated(),
+            user: req.user
+        });
+
+        if (!process.env.OPENAI_API_KEY) {
+            throw new Error('OpenAI API key is not configured');
+        }
+
         const { tasks, preferences } = req.body;
         
         if (!tasks || !Array.isArray(tasks)) {
@@ -88,6 +115,7 @@ router.post('/generate-plan', async (req, res, next) => {
             usage: completion.usage
         });
     } catch (error) {
+        console.error('Generate plan endpoint error:', error);
         next(error);
     }
 });

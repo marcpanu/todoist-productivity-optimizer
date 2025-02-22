@@ -44,9 +44,6 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from UI directory
 app.use(express.static(path.join(__dirname, '..', 'UI')));
 
-// Mount OpenAI routes
-app.use('/api/ai', isAuthenticated, openaiRouter);
-
 // Session configuration
 const sessionConfig = {
     secret: process.env.SESSION_SECRET || 'dev-secret',
@@ -63,12 +60,16 @@ const sessionConfig = {
 };
 
 app.set('trust proxy', 1);
-app.use(session(sessionConfig));
 
-// Initialize passport
+// Initialize passport and session
+app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Mount OpenAI routes
+app.use('/api/ai', isAuthenticated, openaiRouter);
+
+// Initialize passport
 // Passport configuration
 passport.serializeUser((user, done) => {
     console.log('Serializing user:', user);

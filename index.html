@@ -26,7 +26,7 @@
         <main id="main-content">
             <!-- Add logout button to header -->
             <div class="global-header">
-                <button onclick="logout()" class="logout-button">
+                <button onclick="window.logout()" class="logout-button">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
             </div>
@@ -55,7 +55,7 @@
                 </div>
                 <div class="content-area">
                     <div class="generate-plan">
-                        <button class="primary-button">
+                        <button onclick="window.handleGeneratePlan()" class="primary-button">
                             <i class="fas fa-magic"></i> Generate Daily Plan
                         </button>
                     </div>
@@ -148,19 +148,19 @@
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <button class="nav-item active" data-tab="plan-tab">
+            <button onclick="window.handleTabChange('plan-tab')" class="nav-item active" data-tab="plan-tab">
                 <i class="fas fa-list-check"></i>
                 <span>Plan</span>
             </button>
-            <button class="nav-item" data-tab="review-tab">
+            <button onclick="window.handleTabChange('review-tab')" class="nav-item" data-tab="review-tab">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Review</span>
             </button>
-            <button class="nav-item" data-tab="email-tab">
+            <button onclick="window.handleTabChange('email-tab')" class="nav-item" data-tab="email-tab">
                 <i class="fas fa-envelope"></i>
                 <span>Email</span>
             </button>
-            <button class="nav-item" data-tab="trends-tab">
+            <button onclick="window.handleTabChange('trends-tab')" class="nav-item" data-tab="trends-tab">
                 <i class="fas fa-chart-line"></i>
                 <span>Trends</span>
             </button>

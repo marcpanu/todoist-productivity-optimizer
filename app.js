@@ -116,7 +116,7 @@ async function initializeEmailTab() {
                 <span class="template-name">${template.name}</span>
                 <span class="template-schedule">${template.schedule}</span>
             </div>
-            <button onclick="handleSendEmail(${template.id})" class="send-button">
+            <button onclick="window.handleSendEmail(${template.id})" class="send-button">
                 Send Now
             </button>
         </div>
@@ -244,6 +244,10 @@ function initializeApp() {
     // Initialize first tab
     initializePlanTab();
 }
+
+// Expose functions to window for HTML onclick handlers
+window.handleGeneratePlan = handleGeneratePlan;
+window.handleSendEmail = handleSendEmail;
 
 // Start the application
 document.addEventListener('DOMContentLoaded', initializeApp);

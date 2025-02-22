@@ -11,6 +11,7 @@ const passport = require('passport');
 const OAuth2Strategy = require('passport-oauth2');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const axios = require('axios');
 
 // Initialize express app
 const app = express();
@@ -79,6 +80,32 @@ app.get('/api/auth/todoist/callback',
         res.redirect('/');
     }
 );
+
+// Middleware to check if user is authenticated
+const isAuthenticated = (req, res, next) => {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.status(401).json({ error: 'Not authenticated' });
+};
+
+// Test endpoint to get Todoist user data
+app.get('/api/todoist/user', isAuthenticated, async (req, res) => {
+    try {
+        const response = await axios.get('https://api.todoist.com/sync/v9/user', {
+            headers: {
+                'Authorization': `Bearer ${req.user.accessToken}`
+            }
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Todoist API Error:', error.response?.data || error.message);
+        res.status(500).json({ 
+            error: 'Failed to fetch Todoist data',
+            details: error.response?.data || error.message
+        });
+    }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

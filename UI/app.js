@@ -121,11 +121,8 @@ async function checkTodoistConnection() {
         const connectBtn = document.getElementById('todoist-connect');
         const disconnectBtn = document.getElementById('todoist-disconnect');
         
-<<<<<<< HEAD
         if (!status || !connectBtn || !disconnectBtn) return;
         
-=======
->>>>>>> 636eecb6531ecebb110e39084b8f45e585ab6723
         if (response.ok) {
             status.textContent = 'Connected';
             status.classList.add('connected');
@@ -142,16 +139,6 @@ async function checkTodoistConnection() {
     }
 }
 
-<<<<<<< HEAD
-// Function to handle Todoist connection
-function connectTodoist() {
-    window.location.href = '/api/auth/todoist';
-}
-
-// Function to handle Todoist disconnection
-async function disconnectTodoist() {
-    try {
-=======
 // Function to check Google connection status
 async function checkGoogleConnection() {
     try {
@@ -211,7 +198,6 @@ function connectGoogle() {
 // Function to handle Todoist disconnection
 async function disconnectTodoist() {
     try {
->>>>>>> 636eecb6531ecebb110e39084b8f45e585ab6723
         const response = await fetch('/api/todoist/disconnect', {
             method: 'POST',
             credentials: 'include'
@@ -222,8 +208,6 @@ async function disconnectTodoist() {
         }
     } catch (error) {
         console.error('Error disconnecting Todoist:', error);
-<<<<<<< HEAD
-=======
     }
 }
 
@@ -240,7 +224,6 @@ async function disconnectGoogle() {
         }
     } catch (error) {
         console.error('Error disconnecting Google:', error);
->>>>>>> 636eecb6531ecebb110e39084b8f45e585ab6723
     }
 }
 
@@ -306,7 +289,6 @@ window.handleSendEmail = async function(templateId) {
     alert('Email feature coming soon!');
 }
 
-<<<<<<< HEAD
 // Initialize everything when the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     try {
@@ -356,7 +338,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch (error) {
         console.error('Error during initialization:', error);
-=======
+    }
+});
+
 // Add event listeners
 document.addEventListener('DOMContentLoaded', () => {
     // Check connection status when the profile tab is shown
@@ -402,6 +386,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentTab && currentTab.dataset.tab === 'profile-tab') {
         checkTodoistConnection();
         checkGoogleConnection();
->>>>>>> 636eecb6531ecebb110e39084b8f45e585ab6723
     }
 });

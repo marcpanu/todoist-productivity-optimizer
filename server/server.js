@@ -53,13 +53,12 @@ const sessionConfig = {
     resave: false,
     saveUninitialized: false,
     proxy: true,
-    name: 'todoist.sid', // Specific name for our session cookie
+    name: 'todoist.sid',
     cookie: {
         secure: true,
         sameSite: 'none',
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         path: '/',
-        domain: '.vercel.app', // Allow subdomains
         httpOnly: true
     }
 };
@@ -73,7 +72,8 @@ app.use((req, res, next) => {
         hasSession: !!req.session,
         isAuthenticated: req.isAuthenticated?.(),
         cookies: req.cookies,
-        path: req.path
+        path: req.path,
+        headers: req.headers
     });
     next();
 });
@@ -150,13 +150,25 @@ app.get('/api/auth/todoist', (req, res, next) => {
 });
 
 app.get('/api/auth/todoist/callback',
-    passport.authenticate('todoist', {
-        failureRedirect: '/login.html',
-        failureMessage: true
-    }),
+    (req, res, next) => {
+        console.log('OAuth callback received, state:', req.query.state);
+        next();
+    },
+    passport.authenticate('todoist', { failWithError: true }),
     (req, res) => {
-        console.log('OAuth callback success, user:', req.user);
-        res.redirect('/');
+        console.log('OAuth callback success, saving session');
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.redirect('/?auth=session-error');
+            }
+            console.log('Session saved successfully');
+            res.redirect('/');
+        });
+    },
+    (err, req, res, next) => {
+        console.error('OAuth callback error:', err);
+        res.redirect('/?auth=error');
     }
 );
 

@@ -150,37 +150,25 @@
                 <div class="header">
                     <h1>Profile</h1>
                 </div>
-                <div class="content-area">
-                    <div class="integrations-section">
-                        <h2>API Integrations</h2>
-                        <div class="integration-card">
-                            <div class="integration-header">
-                                <i class="fas fa-check-circle"></i>
-                                <h3>Todoist</h3>
-                            </div>
-                            <div class="integration-status">
-                                <p>Status: <span id="todoist-status">Connected</span></p>
-                                <button onclick="window.location.href='/api/auth/todoist'" class="connect-button" id="todoist-connect">
-                                    <i class="fas fa-plug"></i> Connect
-                                </button>
-                                <button onclick="handleTodoistDisconnect()" class="disconnect-button" id="todoist-disconnect">
-                                    <i class="fas fa-unlink"></i> Disconnect
-                                </button>
-                            </div>
+                <div class="integrations">
+                    <div class="integration-card">
+                        <div class="integration-header">
+                            <h2>Todoist</h2>
+                            <span class="status" id="todoist-status">Not Connected</span>
                         </div>
-                        <div class="integration-card disabled">
-                            <div class="integration-header">
-                                <i class="fas fa-clock"></i>
-                                <h3>Google Calendar</h3>
-                                <span class="coming-soon">Coming Soon</span>
-                            </div>
-                            <div class="integration-status">
-                                <p>Status: <span>Not Connected</span></p>
-                                <button disabled class="connect-button">
-                                    <i class="fas fa-plug"></i> Connect
-                                </button>
-                            </div>
+                        <p>Connect your Todoist account to manage tasks and create optimized schedules.</p>
+                        <button class="connect-button" id="todoist-connect">Connect</button>
+                        <button class="disconnect-button" id="todoist-disconnect" style="display: none;">Disconnect</button>
+                    </div>
+
+                    <div class="integration-card">
+                        <div class="integration-header">
+                            <h2>Google Calendar & Gmail</h2>
+                            <span class="status" id="google-status">Not Connected</span>
                         </div>
+                        <p>Connect Google Calendar to sync your schedule and Gmail to track important emails.</p>
+                        <button class="connect-button" id="google-connect">Connect</button>
+                        <button class="disconnect-button" id="google-disconnect" style="display: none;">Disconnect</button>
                     </div>
                 </div>
             </section>

@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "UI/**",
+      "src": "*.{html,js,css}",
       "use": "@vercel/static"
     }
   ],
@@ -16,8 +16,11 @@
       "dest": "/server/server.js"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/UI/$1"
+      "dest": "/index.html"
     }
   ]
 }

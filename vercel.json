@@ -16,8 +16,12 @@
       "dest": "/server/server.js"
     },
     {
-      "src": "^/(.+\\.(js|css|html))$",
+      "src": "^/(.+\\.(js|css))$",
       "dest": "/$1"
+    },
+    {
+      "src": "^/login$",
+      "dest": "/login.html"
     },
     {
       "src": "/(.*)",

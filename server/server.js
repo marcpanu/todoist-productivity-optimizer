@@ -72,11 +72,11 @@ app.get('/api/auth/todoist', passport.authenticate('todoist', {
 
 app.get('/api/auth/todoist/callback',
     passport.authenticate('todoist', {
-        failureRedirect: '/login',
+        failureRedirect: '/login.html',
         failureMessage: true
     }),
     (req, res) => {
-        res.redirect('/dashboard');
+        res.redirect('/');
     }
 );
 

@@ -29,6 +29,9 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from UI directory
+app.use(express.static('UI'));
+
 // Session configuration
 const sessionConfig = {
     secret: process.env.SESSION_SECRET || 'dev-secret',

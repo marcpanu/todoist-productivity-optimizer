@@ -1,0 +1,43 @@
+<!-- Profile Tab Content -->
+<section id="profile-tab" class="tab-content">
+    <div class="header">
+        <h1>Profile</h1>
+    </div>
+    <div class="content-area">
+        <div class="integrations-section">
+            <h2>API Integrations</h2>
+            
+            <!-- Todoist Integration -->
+            <div class="integration-card">
+                <div class="integration-header">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>Todoist</h3>
+                </div>
+                <div class="integration-status">
+                    <p>Status: <span id="todoist-status">Connected</span></p>
+                    <button onclick="window.location.href='/api/auth/todoist'" class="connect-button" id="todoist-connect">
+                        <i class="fas fa-plug"></i> Connect
+                    </button>
+                    <button onclick="handleTodoistDisconnect()" class="disconnect-button" id="todoist-disconnect">
+                        <i class="fas fa-unlink"></i> Disconnect
+                    </button>
+                </div>
+            </div>
+
+            <!-- Google Integration (Coming Soon) -->
+            <div class="integration-card disabled">
+                <div class="integration-header">
+                    <i class="fas fa-clock"></i>
+                    <h3>Google Calendar</h3>
+                    <span class="coming-soon">Coming Soon</span>
+                </div>
+                <div class="integration-status">
+                    <p>Status: <span>Not Connected</span></p>
+                    <button disabled class="connect-button">
+                        <i class="fas fa-plug"></i> Connect
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

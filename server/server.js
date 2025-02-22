@@ -50,10 +50,12 @@ app.use(passport.session());
 
 // Passport configuration
 passport.serializeUser((user, done) => {
+    console.log('Serializing user:', user);
     done(null, user);
 });
 
 passport.deserializeUser((user, done) => {
+    console.log('Deserializing user:', user);
     done(null, user);
 });
 
@@ -65,16 +67,39 @@ const todoistStrategy = new OAuth2Strategy({
     clientSecret: process.env.TODOIST_CLIENT_SECRET,
     callbackURL: process.env.TODOIST_REDIRECT_URI,
     state: true
-}, (accessToken, refreshToken, profile, done) => {
-    return done(null, { accessToken });
+}, async (accessToken, refreshToken, profile, done) => {
+    try {
+        // Get user info from Todoist
+        const response = await axios.get('https://api.todoist.com/sync/v9/user', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        const user = {
+            accessToken,
+            id: response.data.id,
+            email: response.data.email,
+            name: response.data.full_name
+        };
+        
+        console.log('OAuth callback user:', user);
+        return done(null, user);
+    } catch (error) {
+        console.error('Error in OAuth callback:', error);
+        return done(error);
+    }
 });
 
 passport.use('todoist', todoistStrategy);
 
 // Auth routes
-app.get('/api/auth/todoist', passport.authenticate('todoist', {
-    scope: ['data:read_write,data:delete']
-}));
+app.get('/api/auth/todoist', (req, res, next) => {
+    console.log('Starting OAuth flow');
+    passport.authenticate('todoist', {
+        scope: ['data:read_write,data:delete']
+    })(req, res, next);
+});
 
 app.get('/api/auth/todoist/callback',
     passport.authenticate('todoist', {
@@ -82,6 +107,7 @@ app.get('/api/auth/todoist/callback',
         failureMessage: true
     }),
     (req, res) => {
+        console.log('OAuth callback success, user:', req.user);
         res.redirect('/');
     }
 );
@@ -110,6 +136,17 @@ app.get('/api/todoist/user', isAuthenticated, async (req, res) => {
             details: error.response?.data || error.message
         });
     }
+});
+
+// Logout endpoint
+app.post('/api/auth/logout', (req, res) => {
+    req.logout((err) => {
+        if (err) {
+            console.error('Logout error:', err);
+            return res.status(500).json({ error: 'Failed to logout' });
+        }
+        res.json({ success: true });
+    });
 });
 
 // Debug endpoint to check session

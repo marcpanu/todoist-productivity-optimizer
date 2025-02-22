@@ -108,6 +108,49 @@ class AnalyticsService {
     }
 }
 
+// Function to check Todoist connection status
+async function checkTodoistConnection() {
+    try {
+        const response = await fetch('/api/debug/session');
+        const data = await response.json();
+        
+        const todoistStatus = document.getElementById('todoist-status');
+        const connectButton = document.getElementById('todoist-connect');
+        const disconnectButton = document.getElementById('todoist-disconnect');
+        
+        if (data.isAuthenticated && data.user) {
+            todoistStatus.textContent = 'Connected';
+            todoistStatus.style.color = '#4CAF50';
+            connectButton.style.display = 'none';
+            disconnectButton.style.display = 'flex';
+        } else {
+            todoistStatus.textContent = 'Not Connected';
+            todoistStatus.style.color = '#f44336';
+            connectButton.style.display = 'flex';
+            disconnectButton.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error checking Todoist connection:', error);
+    }
+}
+
+// Function to handle Todoist disconnect
+async function handleTodoistDisconnect() {
+    try {
+        const response = await fetch('/api/auth/logout', {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            console.error('Failed to disconnect from Todoist');
+        }
+    } catch (error) {
+        console.error('Error disconnecting from Todoist:', error);
+    }
+}
+
 // Initialize Services
 const todoistService = new TodoistService(localStorage.getItem('todoist_token'));
 const openaiService = new OpenAIService(localStorage.getItem('openai_token'));
@@ -273,8 +316,18 @@ window.handleSendEmail = async function(templateId) {
     alert('Email feature coming soon!');
 }
 
-// Initialize Application
-document.addEventListener('DOMContentLoaded', function() {
+// Check Todoist connection status when the profile tab is shown
+document.addEventListener('DOMContentLoaded', () => {
+    const profileTab = document.querySelector('[data-tab="profile-tab"]');
+    if (profileTab) {
+        profileTab.addEventListener('click', checkTodoistConnection);
+    }
+    
+    // Initial check if we're on the profile tab
+    if (window.location.hash === '#profile') {
+        checkTodoistConnection();
+    }
+
     // Add event listeners to navigation items
     navItems.forEach(item => {
         item.addEventListener('click', window.handleNavigation);

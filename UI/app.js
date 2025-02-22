@@ -142,9 +142,10 @@ async function checkTodoistConnection() {
 // Function to check Google connection status
 async function checkGoogleConnection() {
     try {
-        const response = await fetch('/api/google/user', {
+        const response = await fetch('/api/google/status', {
             credentials: 'include'
         });
+        const data = await response.json();
         
         const status = document.getElementById('google-status');
         const connectBtn = document.getElementById('google-connect');
@@ -152,7 +153,7 @@ async function checkGoogleConnection() {
         
         if (!status || !connectBtn || !disconnectBtn) return;
         
-        if (response.ok) {
+        if (data.connected) {
             status.textContent = 'Connected';
             status.classList.add('connected');
             connectBtn.style.display = 'none';

@@ -96,6 +96,17 @@ app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Passport serialization
+passport.serializeUser((user, done) => {
+    console.log('Serializing user:', user);
+    done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+    console.log('Deserializing user:', user);
+    done(null, user);
+});
+
 // Mount API routes
 app.use('/api/ai', isAuthenticated, openaiRouter);
 app.use('/api/google', isAuthenticated, googleRouter);
@@ -111,18 +122,6 @@ app.get('/api/auth/check', (req, res) => {
             google: !!req.user?.googleId
         }
     });
-});
-
-// Initialize passport
-// Passport configuration
-passport.serializeUser((user, done) => {
-    console.log('Serializing user:', user);
-    done(null, user);
-});
-
-passport.deserializeUser((user, done) => {
-    console.log('Deserializing user:', user);
-    done(null, user);
 });
 
 // Todoist OAuth2 strategy

@@ -387,18 +387,19 @@ body {
 }
 
 .integrations-section h2 {
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 20px;
     font-size: 1.5em;
 }
 
 .integration-card {
-    background: #fff;
+    background: var(--surface-color);
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
 }
 
 .integration-card:hover {
@@ -422,7 +423,7 @@ body {
 }
 
 .integration-header .fa-check-circle {
-    color: #4CAF50;
+    color: var(--success-color);
 }
 
 .integration-header .fa-clock {
@@ -432,12 +433,12 @@ body {
 .integration-header h3 {
     margin: 0;
     font-size: 1.2em;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .coming-soon {
     background: #FFC107;
-    color: #fff;
+    color: white;
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 0.8em;
@@ -448,11 +449,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .integration-status p {
     margin: 0;
-    color: #666;
+    color: var(--text-secondary);
 }
 
 .connect-button, .disconnect-button {
@@ -471,29 +474,36 @@ body {
 }
 
 .connect-button {
-    background: #4CAF50;
+    background: var(--success-color);
     color: white;
 }
 
 .connect-button:hover {
-    background: #45a049;
+    background: #2d7230;
 }
 
 .disconnect-button {
-    background: #f44336;
+    background: var(--error-color);
     color: white;
 }
 
 .disconnect-button:hover {
-    background: #da190b;
+    background: #b71c1c;
 }
 
 .connect-button:disabled {
-    background: #cccccc;
+    background: var(--text-secondary);
     cursor: not-allowed;
 }
 
 #todoist-status {
     font-weight: 500;
-    color: #4CAF50;
+}
+
+#todoist-status.connected {
+    color: var(--success-color);
+}
+
+#todoist-status.disconnected {
+    color: var(--error-color);
 }

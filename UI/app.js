@@ -120,12 +120,12 @@ async function checkTodoistConnection() {
         
         if (data.isAuthenticated && data.user) {
             todoistStatus.textContent = 'Connected';
-            todoistStatus.style.color = '#4CAF50';
+            todoistStatus.className = 'connected';
             connectButton.style.display = 'none';
             disconnectButton.style.display = 'flex';
         } else {
             todoistStatus.textContent = 'Not Connected';
-            todoistStatus.style.color = '#f44336';
+            todoistStatus.className = 'disconnected';
             connectButton.style.display = 'flex';
             disconnectButton.style.display = 'none';
         }
@@ -318,13 +318,19 @@ window.handleSendEmail = async function(templateId) {
 
 // Check Todoist connection status when the profile tab is shown
 document.addEventListener('DOMContentLoaded', () => {
-    const profileTab = document.querySelector('[data-tab="profile-tab"]');
-    if (profileTab) {
-        profileTab.addEventListener('click', checkTodoistConnection);
-    }
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            if (item.dataset.tab === 'profile-tab') {
+                checkTodoistConnection();
+            }
+        });
+    });
     
     // Initial check if we're on the profile tab
-    if (window.location.hash === '#profile') {
+    const currentTab = document.querySelector('.nav-item.active');
+    if (currentTab && currentTab.dataset.tab === 'profile-tab') {
         checkTodoistConnection();
     }
 

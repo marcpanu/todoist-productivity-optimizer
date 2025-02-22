@@ -80,6 +80,16 @@ router.get('/auth/callback',
     }
 );
 
+// Connection status endpoint (no auth required)
+router.get('/status', (req, res) => {
+    const user = req.user;
+    res.json({
+        connected: !!user?.googleId,
+        email: user?.email,
+        name: user?.name
+    });
+});
+
 // Calendar endpoints
 router.get('/calendar/events', async (req, res) => {
     try {
@@ -140,16 +150,6 @@ router.get('/gmail/messages', async (req, res) => {
         console.error('Gmail API Error:', error);
         res.status(500).json({ error: 'Failed to fetch Gmail messages' });
     }
-});
-
-// Connection status endpoint
-router.get('/status', (req, res) => {
-    const user = req.user;
-    res.json({
-        connected: !!user?.googleId,
-        email: user?.email,
-        name: user?.name
-    });
 });
 
 module.exports = router;

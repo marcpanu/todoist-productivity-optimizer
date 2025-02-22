@@ -109,6 +109,29 @@ passport.deserializeUser((user, done) => {
 
 // Mount API routes
 app.use('/api/ai', isAuthenticated, openaiRouter);
+
+// Split Google routes into auth and protected routes
+const googleAuthRouter = express.Router();
+googleAuthRouter.get('/auth', passport.authenticate('google'));
+googleAuthRouter.get('/auth/callback', 
+    passport.authenticate('google', { failWithError: true }),
+    (req, res) => {
+        console.log('Google OAuth callback success, saving session');
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.redirect('/?auth=session-error');
+            }
+            console.log('Session saved successfully');
+            res.redirect('/');
+        });
+    },
+    (err, req, res, next) => {
+        console.error('Google OAuth callback error:', err);
+        res.redirect('/?auth=error');
+    }
+);
+app.use('/api/google', googleAuthRouter);
 app.use('/api/google', isAuthenticated, googleRouter);
 
 // Auth check endpoint

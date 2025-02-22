@@ -52,7 +52,7 @@ class OpenAIService {
                     },
                     {
                         role: "user",
-                        content: `Please create a daily plan based on these tasks: ${JSON.stringify(tasks)}`
+                        content: `Please create a plan for these tasks: ${JSON.stringify(tasks)}`
                     }
                 ]
             })
@@ -67,7 +67,13 @@ class AnalyticsService {
     }
 
     createTaskCompletionChart(containerId, data) {
-        const ctx = document.getElementById(containerId).getContext('2d');
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const canvas = document.createElement('canvas');
+        container.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -75,232 +81,132 @@ class AnalyticsService {
                 datasets: [{
                     label: 'Tasks Completed',
                     data: data.values,
-                    borderColor: '#e44332',
-                    tension: 0.4,
-                    fill: false
+                    borderColor: '#FF4B4B',
+                    tension: 0.1
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: {
-                            display: false
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
+                        ticks: {
+                            stepSize: 1
                         }
                     }
                 }
             }
         });
+
         this.chartInstances.set(containerId, chart);
         return chart;
     }
 }
 
+// Initialize services (moved to DOMContentLoaded)
+let todoistService;
+let openaiService;
+let analyticsService;
+
 // Function to check Todoist connection status
 async function checkTodoistConnection() {
     try {
-        const response = await fetch('/api/debug/session');
+        const response = await fetch('/api/todoist/user', {
+            credentials: 'include'
+        });
         const data = await response.json();
         
-        const todoistStatus = document.getElementById('todoist-status');
-        const connectButton = document.getElementById('todoist-connect');
-        const disconnectButton = document.getElementById('todoist-disconnect');
+        const status = document.getElementById('todoist-status');
+        const connectBtn = document.getElementById('todoist-connect');
+        const disconnectBtn = document.getElementById('todoist-disconnect');
         
-        if (data.isAuthenticated && data.user) {
-            todoistStatus.textContent = 'Connected';
-            todoistStatus.className = 'connected';
-            connectButton.style.display = 'none';
-            disconnectButton.style.display = 'flex';
+        if (!status || !connectBtn || !disconnectBtn) return;
+        
+        if (response.ok) {
+            status.textContent = 'Connected';
+            status.classList.add('connected');
+            connectBtn.style.display = 'none';
+            disconnectBtn.style.display = 'block';
         } else {
-            todoistStatus.textContent = 'Not Connected';
-            todoistStatus.className = 'disconnected';
-            connectButton.style.display = 'flex';
-            disconnectButton.style.display = 'none';
+            status.textContent = 'Not Connected';
+            status.classList.remove('connected');
+            connectBtn.style.display = 'block';
+            disconnectBtn.style.display = 'none';
         }
     } catch (error) {
         console.error('Error checking Todoist connection:', error);
     }
 }
 
-// Function to handle Todoist disconnect
-async function handleTodoistDisconnect() {
+// Function to handle Todoist connection
+function connectTodoist() {
+    window.location.href = '/api/auth/todoist';
+}
+
+// Function to handle Todoist disconnection
+async function disconnectTodoist() {
     try {
-        const response = await fetch('/api/auth/logout', {
-            method: 'POST'
+        const response = await fetch('/api/todoist/disconnect', {
+            method: 'POST',
+            credentials: 'include'
         });
         
         if (response.ok) {
-            window.location.reload();
-        } else {
-            console.error('Failed to disconnect from Todoist');
+            checkTodoistConnection();
         }
     } catch (error) {
-        console.error('Error disconnecting from Todoist:', error);
+        console.error('Error disconnecting Todoist:', error);
     }
 }
 
-// Initialize Services
-const todoistService = new TodoistService(localStorage.getItem('todoist_token'));
-const openaiService = new OpenAIService(localStorage.getItem('openai_token'));
-const analyticsService = new AnalyticsService();
-
-// DOM Elements
-const mainContent = document.getElementById('main-content');
-const navItems = document.querySelectorAll('.nav-item');
-const tasksChart = document.getElementById('tasksChart');
-
-// State Management
-let currentTab = 'plan-tab';
-let tasks = [];
-let completedTasks = [];
-
 // Navigation Handler
-window.handleNavigation = function(event) {
-    const targetTab = event.currentTarget.dataset.tab;
-    if (targetTab === currentTab) return;
-
-    // Update active states
-    document.querySelector(`.nav-item[data-tab="${currentTab}"]`).classList.remove('active');
-    document.getElementById(currentTab).classList.remove('active');
+function handleNavigation(event) {
+    const navItems = document.querySelectorAll('.nav-item');
+    const tabContents = document.querySelectorAll('.tab-content');
     
-    event.currentTarget.classList.add('active');
-    document.getElementById(targetTab).classList.add('active');
+    navItems.forEach(item => item.classList.remove('active'));
+    tabContents.forEach(content => content.classList.remove('active'));
     
-    currentTab = targetTab;
-
-    // Initialize tab-specific content
-    if (targetTab === 'trends-tab') {
-        initializeTrendsTab();
-    } else if (targetTab === 'plan-tab') {
-        initializePlanTab();
-    } else if (targetTab === 'review-tab') {
-        initializeReviewTab();
-    } else if (targetTab === 'email-tab') {
-        initializeEmailTab();
+    const clickedItem = event.currentTarget;
+    clickedItem.classList.add('active');
+    
+    const tabId = clickedItem.dataset.tab;
+    const tabContent = document.getElementById(tabId);
+    if (tabContent) {
+        tabContent.classList.add('active');
     }
 }
 
 // Tab Initialization Functions
-async function initializePlanTab() {
-    try {
-        tasks = await todoistService.getTasks();
-        const tasksList = document.getElementById('tasks-list');
-        tasksList.innerHTML = tasks.map(task => `
-            <div class="task-item" data-id="${task.id}">
-                <div class="task-content">
-                    <span class="task-title">${task.content}</span>
-                    <span class="task-due">${task.due ? new Date(task.due.date).toLocaleDateString() : 'No due date'}</span>
-                </div>
-                <div class="task-priority">P${task.priority}</div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading tasks:', error);
-        tasksList.innerHTML = '<div class="error">Error loading tasks. Please check your Todoist API token.</div>';
-    }
-}
-
-async function initializeReviewTab() {
-    try {
-        completedTasks = await todoistService.getCompletedTasks();
-        const insights = await openaiService.generatePlan(completedTasks, {
-            totalTasks: tasks.length,
-            completedTasks: completedTasks.length
-        });
-        
-        const reportContent = document.getElementById('report-content');
-        reportContent.innerHTML = `
-            <div class="report">
-                <h2>Productivity Insights</h2>
-                <div class="insights-content">${insights.choices[0].message.content}</div>
-                <div class="metrics">
-                    <div class="metric">
-                        <h3>Tasks Completed</h3>
-                        <p>${completedTasks.length}</p>
-                    </div>
-                    <div class="metric">
-                        <h3>Completion Rate</h3>
-                        <p>${Math.round(completedTasks.length / tasks.length * 100)}%</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error generating review:', error);
-        reportContent.innerHTML = '<div class="error">Error generating review. Please check your OpenAI API key.</div>';
-    }
-}
-
-async function initializeEmailTab() {
-    const templateList = document.querySelector('.template-list');
-    const templates = [
-        { id: 1, name: 'Daily Summary', schedule: 'daily' },
-        { id: 2, name: 'Weekly Report', schedule: 'weekly' },
-        { id: 3, name: 'Monthly Review', schedule: 'monthly' }
-    ];
+function initializePlanTab() {
+    const tasksList = document.getElementById('tasks-list');
+    if (!tasksList) return;
     
-    templateList.innerHTML = templates.map(template => `
-        <div class="template-item">
-            <div class="template-info">
-                <span class="template-name">${template.name}</span>
-                <span class="template-schedule">${template.schedule}</span>
-            </div>
-            <button onclick="handleSendEmail(${template.id})" class="send-button">
-                Send Now
-            </button>
-        </div>
-    `).join('');
-}
-
-async function initializeTrendsTab() {
-    try {
-        const today = new Date();
-        const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        
-        const weeklyTasks = await todoistService.getCompletedTasks({
-            since: lastWeek.toISOString()
+    todoistService.getTasks()
+        .then(tasks => {
+            tasksList.innerHTML = tasks.map(task => `
+                <div class="task-item">
+                    <input type="checkbox" ${task.completed ? 'checked' : ''}>
+                    <span>${task.content}</span>
+                </div>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error fetching tasks:', error);
+            tasksList.innerHTML = '<div class="error">Error loading tasks. Please check your connection.</div>';
         });
-        
-        const tasksByDay = weeklyTasks.reduce((acc, task) => {
-            const date = new Date(task.completed_date).toLocaleDateString();
-            acc[date] = (acc[date] || 0) + 1;
-            return acc;
-        }, {});
-        
-        if (!tasksChart) return;
-        
-        analyticsService.createTaskCompletionChart('tasksChart', {
-            labels: Object.keys(tasksByDay),
-            values: Object.values(tasksByDay)
-        });
-        
-    } catch (error) {
-        console.error('Error initializing trends:', error);
-        document.querySelector('.chart-container').innerHTML = '<div class="error">Error loading trends. Please check your API token.</div>';
-    }
 }
 
 // Event Handlers
-window.handleGeneratePlan = async function() {
+async function handleGeneratePlan() {
+    const tasksList = document.getElementById('tasks-list');
+    if (!tasksList) return;
+
     try {
-        const plan = await openaiService.generatePlan(tasks, {
-            preferredWorkingHours: '9:00-17:00',
-            breakDuration: 30
-        });
+        const tasks = await todoistService.getTasks();
+        const plan = await openaiService.generatePlan(tasks);
         
-        const tasksList = document.getElementById('tasks-list');
         tasksList.innerHTML = `
             <div class="plan-summary">
                 <p>${plan.choices[0].message.content}</p>
@@ -316,29 +222,54 @@ window.handleSendEmail = async function(templateId) {
     alert('Email feature coming soon!');
 }
 
-// Check Todoist connection status when the profile tab is shown
+// Initialize everything when the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    const navItems = document.querySelectorAll('.nav-item');
-    
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            if (item.dataset.tab === 'profile-tab') {
-                checkTodoistConnection();
-            }
+    try {
+        // Initialize services
+        todoistService = new TodoistService(localStorage.getItem('todoist_token'));
+        openaiService = new OpenAIService(localStorage.getItem('openai_token'));
+        analyticsService = new AnalyticsService();
+
+        // Set up navigation
+        const navItems = document.querySelectorAll('.nav-item');
+        if (navItems) {
+            navItems.forEach(item => {
+                if (item) {
+                    item.addEventListener('click', handleNavigation);
+                    // Check Todoist connection when profile tab is clicked
+                    if (item.dataset.tab === 'profile-tab') {
+                        item.addEventListener('click', checkTodoistConnection);
+                    }
+                }
+            });
+        }
+
+        // Set up connection buttons
+        const todoistConnect = document.getElementById('todoist-connect');
+        const todoistDisconnect = document.getElementById('todoist-disconnect');
+        const googleConnect = document.getElementById('google-connect');
+        const googleDisconnect = document.getElementById('google-disconnect');
+
+        if (todoistConnect) todoistConnect.addEventListener('click', connectTodoist);
+        if (todoistDisconnect) todoistDisconnect.addEventListener('click', disconnectTodoist);
+        if (googleConnect) googleConnect.addEventListener('click', () => window.location.href = '/api/google/auth');
+        if (googleDisconnect) googleDisconnect.addEventListener('click', () => {
+            fetch('/api/google/disconnect', { method: 'POST', credentials: 'include' })
+                .then(() => window.location.reload())
+                .catch(console.error);
         });
-    });
-    
-    // Initial check if we're on the profile tab
-    const currentTab = document.querySelector('.nav-item.active');
-    if (currentTab && currentTab.dataset.tab === 'profile-tab') {
-        checkTodoistConnection();
+
+        // Initialize first tab
+        const currentTab = document.querySelector('.nav-item.active');
+        if (currentTab && currentTab.dataset.tab === 'plan-tab') {
+            initializePlanTab();
+        }
+
+        // Initial connection check if on profile tab
+        if (currentTab && currentTab.dataset.tab === 'profile-tab') {
+            checkTodoistConnection();
+        }
+    } catch (error) {
+        console.error('Error during initialization:', error);
     }
-
-    // Add event listeners to navigation items
-    navItems.forEach(item => {
-        item.addEventListener('click', window.handleNavigation);
-    });
-
-    // Initialize first tab
-    initializePlanTab();
 });

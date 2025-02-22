@@ -300,6 +300,24 @@ app.get('/api/debug/session', (req, res) => {
     });
 });
 
+// Todoist user status endpoint
+app.get('/api/todoist/user', (req, res) => {
+    if (req.isAuthenticated() && req.user) {
+        res.json({
+            authenticated: true,
+            user: {
+                id: req.user.id,
+                name: req.user.name,
+                email: req.user.email
+            }
+        });
+    } else {
+        res.status(401).json({
+            authenticated: false
+        });
+    }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK' });

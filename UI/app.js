@@ -112,9 +112,10 @@ let analyticsService;
 // Function to check Todoist connection status
 async function checkTodoistConnection() {
     try {
-        const response = await fetch('/api/todoist/user', {
+        const response = await fetch('/api/debug/session', {
             credentials: 'include'
         });
+        const data = await response.json();
         
         const status = document.getElementById('todoist-status');
         const connectBtn = document.getElementById('todoist-connect');
@@ -122,7 +123,7 @@ async function checkTodoistConnection() {
         
         if (!status || !connectBtn || !disconnectBtn) return;
         
-        if (response.ok) {
+        if (data.isAuthenticated && data.user) {
             status.textContent = 'Connected';
             status.classList.add('connected');
             connectBtn.style.display = 'none';
@@ -180,7 +181,7 @@ function connectGoogle() {
 // Function to handle Todoist disconnection
 async function disconnectTodoist() {
     try {
-        const response = await fetch('/api/todoist/disconnect', {
+        const response = await fetch('/api/auth/logout', {
             method: 'POST',
             credentials: 'include'
         });

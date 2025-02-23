@@ -63,23 +63,19 @@ router.get('/status/google', (req, res) => {
     }
 });
 
-// App authentication with secure password comparison
+// App authentication
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
-        const user = users.get(username);
-
-        if (!user) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+        
+        // Simple authentication (DO NOT use in production)
+        if (username === (process.env.DEFAULT_USERNAME || 'marcpanu') && 
+            password === (process.env.DEFAULT_PASSWORD || 'todoist2025')) {
+            req.session.userId = username;
+            res.json({ success: true });
+        } else {
+            res.status(401).json({ error: 'Invalid credentials' });
         }
-
-        const isValidPassword = await bcrypt.compare(password, user.password);
-        if (!isValidPassword) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-
-        req.session.userId = username;
-        res.json({ success: true });
     } catch (error) {
         console.error('Error during login:', error);
         res.status(500).json({ error: 'Internal server error' });

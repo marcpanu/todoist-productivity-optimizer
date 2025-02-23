@@ -2,30 +2,47 @@
   "version": 2,
   "builds": [
     {
-      "src": "server/server.js",
+      "src": "server/**/*.js",
       "use": "@vercel/node"
     },
     {
-      "src": "UI/**",
+      "src": "UI/**/*",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/auth/(.*)",
-      "dest": "/server/server.js"
+      "dest": "server/server.js",
+      "headers": {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Origin": "https://todoist-productivity-optimizer.vercel.app",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+      }
     },
     {
       "src": "/api/(.*)",
-      "dest": "/server/server.js"
-    },
-    {
-      "src": "^/(.+\\.(js|css|html))$",
-      "dest": "/UI/$1"
+      "dest": "server/server.js",
+      "headers": {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Origin": "https://todoist-productivity-optimizer.vercel.app",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+      }
     },
     {
       "src": "/(.*)",
-      "dest": "/UI/index.html"
+      "dest": "UI/$1",
+      "headers": {
+        "X-Frame-Options": "DENY",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.todoist.com https://www.googleapis.com; frame-src 'self' https://accounts.google.com; object-src 'none';",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+        "X-XSS-Protection": "1; mode=block",
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
     }
   ]
 }

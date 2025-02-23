@@ -109,7 +109,7 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // Mount API routes
-app.use('/api/ai', openaiRouter);
+app.use('/api/ai', openaiRouter);  
 app.use('/api/todoist/data', requireAppLogin, requireTodoistAuth, googleRouter);
 app.use('/api/google', requireAppLogin, requireGoogleAuth, googleRouter);
 

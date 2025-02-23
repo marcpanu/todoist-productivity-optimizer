@@ -42,31 +42,23 @@ const handleAIError = (error, req, res, next) => {
 // Test endpoint for basic completions
 router.post('/test', async (req, res, next) => {
     try {
-        // Log authentication status
-        console.log('Auth status:', {
-            isAuthenticated: req.isAuthenticated(),
-            user: req.user
-        });
-
         if (!process.env.OPENAI_API_KEY) {
-            throw new Error('OpenAI API key is not configured');
+            throw new Error('OpenAI API key not configured');
         }
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
             messages: [
                 { role: "system", content: "You are a helpful assistant." },
-                { role: "user", content: "Hello!" }
+                { role: "user", content: "Say 'OpenAI connection test successful!'" }
             ],
-            max_tokens: 50
+            model: "gpt-3.5-turbo",
         });
 
         res.json({
-            message: completion.choices[0].message.content,
-            usage: completion.usage
+            success: true,
+            message: completion.choices[0].message.content
         });
     } catch (error) {
-        console.error('Test endpoint error:', error);
         next(error);
     }
 });
@@ -74,12 +66,6 @@ router.post('/test', async (req, res, next) => {
 // Generate daily plan based on tasks
 router.post('/generate-plan', async (req, res, next) => {
     try {
-        // Log authentication status
-        console.log('Auth status:', {
-            isAuthenticated: req.isAuthenticated(),
-            user: req.user
-        });
-
         if (!process.env.OPENAI_API_KEY) {
             throw new Error('OpenAI API key is not configured');
         }

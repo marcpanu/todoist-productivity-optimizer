@@ -17,6 +17,9 @@ const path = require('path');
 // Import routes
 const openaiRouter = require('./openai');
 const googleRouter = require('./google');
+const todoistDataRouter = require('./todoistData');
+const googleCalendarRouter = require('./googleCalendar');
+const googleGmailRouter = require('./googleGmail');
 
 // Initialize express app
 const app = express();
@@ -87,6 +90,15 @@ app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Passport session serialization
+passport.serializeUser((user, done) => {
+    done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+    done(null, user);
+});
+
 // Basic app login endpoint (temporary - should be replaced with proper auth)
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
@@ -109,73 +121,22 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // Mount API routes
-app.use('/api/ai', openaiRouter);  
-app.use('/api/todoist/data', requireAppLogin, requireTodoistAuth, googleRouter);
-app.use('/api/google', requireAppLogin, requireGoogleAuth, googleRouter);
+app.use('/api/ai', openaiRouter);  // No authentication required for OpenAI routes
+app.use('/api/todoist/data', requireAppLogin, requireTodoistAuth, todoistDataRouter);
+app.use('/api/google/calendar', requireAppLogin, requireGoogleAuth, googleCalendarRouter);
+app.use('/api/google/gmail', requireAppLogin, requireGoogleAuth, googleGmailRouter);
 
 // Auth routes (no app login required)
-app.use('/auth/todoist', passport.authenticate('todoist', {
+app.get('/auth/todoist', passport.authenticate('todoist', {
     scope: ['data:read_write,data:delete']
 }));
 
 app.get('/auth/todoist/callback',
-    (req, res, next) => {
-        console.log('OAuth callback received, state:', req.query.state);
-        next();
-    },
-    passport.authenticate('todoist', { failWithError: true }),
-    (req, res) => {
-        console.log('OAuth callback success, saving session');
-        req.session.save((err) => {
-            if (err) {
-                console.error('Session save error:', err);
-                return res.redirect('/?auth=session-error');
-            }
-            console.log('Session saved successfully');
-            res.redirect('/');
-        });
-    },
-    (err, req, res, next) => {
-        console.error('OAuth callback error:', err);
-        res.redirect('/?auth=error');
-    }
+    passport.authenticate('todoist', { 
+        failureRedirect: '/?auth=error',
+        successRedirect: '/'
+    })
 );
-
-app.use('/auth/google', passport.authenticate('google'));
-
-// Protected app routes (require app login)
-app.get('/api/todoist/user', requireAppLogin, async (req, res) => {
-    try {
-        const response = await axios.get('https://api.todoist.com/sync/v9/user', {
-            headers: {
-                'Authorization': `Bearer ${req.user.accessToken}`
-            }
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error('Todoist API Error:', error.response?.data || error.message);
-        res.status(500).json({ 
-            error: 'Failed to fetch Todoist data',
-            details: error.response?.data || error.message
-        });
-    }
-});
-
-// Auth check endpoint
-app.get('/api/auth/check', (req, res) => {
-    res.json({
-        authenticated: !!req.session.userId,
-        connections: {
-            todoist: !!req.user?.id,
-            google: !!req.user?.googleId
-        }
-    });
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK' });
-});
 
 // Todoist OAuth2 strategy
 const todoistStrategy = new OAuth2Strategy({
@@ -210,6 +171,22 @@ const todoistStrategy = new OAuth2Strategy({
 });
 
 passport.use('todoist', todoistStrategy);
+
+// Auth check endpoint
+app.get('/api/auth/check', (req, res) => {
+    res.json({
+        authenticated: !!req.session.userId,
+        connections: {
+            todoist: !!req.user?.id,
+            google: !!req.user?.googleId
+        }
+    });
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK' });
+});
 
 // Error handling
 app.use((err, req, res, next) => {

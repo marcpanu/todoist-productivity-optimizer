@@ -171,7 +171,7 @@ async function checkGoogleConnection() {
 
 // Function to handle Todoist connection
 function connectTodoist() {
-    window.location.href = '/api/auth/todoist';
+    window.location.href = '/auth/todoist';
 }
 
 // Function to handle Google connection

@@ -127,8 +127,9 @@ const todoistStrategy = new OAuth2Strategy({
     clientID: process.env.TODOIST_CLIENT_ID,
     clientSecret: process.env.TODOIST_CLIENT_SECRET,
     callbackURL: process.env.TODOIST_REDIRECT_URI,
-    state: true
-}, async (accessToken, refreshToken, profile, done) => {
+    state: true,
+    passReqToCallback: true
+}, async (req, accessToken, refreshToken, profile, done) => {
     try {
         // Get user info from Todoist
         const response = await axios.get('https://api.todoist.com/sync/v9/user', {
@@ -137,17 +138,20 @@ const todoistStrategy = new OAuth2Strategy({
             }
         });
 
-        const user = {
+        // Merge with existing user data if present
+        const todoistData = {
             accessToken,
             id: response.data.id,
             email: response.data.email,
             name: response.data.full_name
         };
+
+        const user = req.user ? { ...req.user, ...todoistData } : todoistData;
         
-        console.log('OAuth callback user:', user);
+        console.log('Todoist OAuth callback user:', user);
         return done(null, user);
     } catch (error) {
-        console.error('Error in OAuth callback:', error);
+        console.error('Error in Todoist OAuth callback:', error);
         return done(error);
     }
 });
@@ -172,8 +176,9 @@ passport.use('google', new GoogleStrategy({
         'email',
         'https://www.googleapis.com/auth/calendar.readonly',
         'https://www.googleapis.com/auth/gmail.send'
-    ]
-}, async (accessToken, refreshToken, profile, done) => {
+    ],
+    passReqToCallback: true
+}, async (req, accessToken, refreshToken, profile, done) => {
     try {
         // Store tokens
         const oauth2Client = getOAuth2Client();
@@ -182,14 +187,16 @@ passport.use('google', new GoogleStrategy({
             refresh_token: refreshToken
         });
 
-        // Create user object with Google info
-        const user = {
+        // Merge with existing user data if present
+        const googleData = {
             googleId: profile.id,
             googleEmail: profile.emails[0].value,
             googleName: profile.displayName,
             googleAccessToken: accessToken,
             googleRefreshToken: refreshToken
         };
+
+        const user = req.user ? { ...req.user, ...googleData } : googleData;
 
         console.log('Google OAuth callback user:', user);
         return done(null, user);

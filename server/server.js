@@ -7,6 +7,7 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const OAuth2Strategy = require('passport-oauth2').Strategy;
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
@@ -71,6 +72,19 @@ const requireGoogleAuth = (req, res, next) => {
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(limiter);
+
+// Debug logging middleware
+app.use((req, res, next) => {
+    console.log('Incoming request:', {
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+        body: req.body,
+        query: req.query
+    });
+    next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -138,9 +152,6 @@ const todoistStrategy = new OAuth2Strategy({
 passport.use('todoist', todoistStrategy);
 
 // Google OAuth2 strategy
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-
-// Initialize OAuth2 client
 function getOAuth2Client() {
     return new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
@@ -186,11 +197,11 @@ passport.use('google', new GoogleStrategy({
 }));
 
 // Mount API routes
-app.use('/auth', authRouter);  // New auth router
-app.use('/api/ai', openaiRouter);  // No authentication required for OpenAI routes
-app.use('/api/todoist/data', requireAppLogin, requireTodoistAuth, todoistDataRouter);
-app.use('/api/google/calendar', requireAppLogin, requireGoogleAuth, googleCalendarRouter);
-app.use('/api/google/gmail', requireAppLogin, requireGoogleAuth, googleGmailRouter);
+app.use('/auth', authRouter);  // Auth router (login, OAuth flows)
+app.use('/ai', requireAppLogin, openaiRouter);  // AI routes require app login
+app.use('/todoist/data', requireAppLogin, requireTodoistAuth, todoistDataRouter);
+app.use('/google/calendar', requireAppLogin, requireGoogleAuth, googleCalendarRouter);
+app.use('/google/gmail', requireAppLogin, requireGoogleAuth, googleGmailRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

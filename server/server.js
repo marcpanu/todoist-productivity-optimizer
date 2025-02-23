@@ -89,9 +89,18 @@ app.use(passport.session());
 
 // Basic app login endpoint (temporary - should be replaced with proper auth)
 app.post('/api/auth/login', (req, res) => {
-    // This is a simplified login - you should implement proper authentication
-    req.session.userId = 'temp-user-id';
-    res.json({ success: true });
+    const { username, password } = req.body;
+    
+    // In production, this should use a secure password hash and database
+    const VALID_USERNAME = 'marcpanu';
+    const VALID_PASSWORD = 'todoist2025';
+
+    if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+        req.session.userId = username;
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+    }
 });
 
 app.post('/api/auth/logout', (req, res) => {

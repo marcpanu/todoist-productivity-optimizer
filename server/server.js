@@ -90,10 +90,12 @@ app.use(passport.session());
 
 // Passport session serialization
 passport.serializeUser((user, done) => {
+    console.log('Serializing user:', user);
     done(null, user);
 });
 
 passport.deserializeUser((user, done) => {
+    console.log('Deserializing user:', user);
     done(null, user);
 });
 
@@ -130,10 +132,18 @@ app.get('/auth/todoist', passport.authenticate('todoist', {
 }));
 
 app.get('/auth/todoist/callback',
+    (req, res, next) => {
+        console.log('Received OAuth callback, query:', req.query);
+        next();
+    },
     passport.authenticate('todoist', { 
         failureRedirect: '/?auth=error',
         successRedirect: '/'
-    })
+    }),
+    (req, res) => {
+        console.log('OAuth callback success, user:', req.user);
+        res.redirect('/');
+    }
 );
 
 // Todoist OAuth2 strategy

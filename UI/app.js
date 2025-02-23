@@ -113,7 +113,7 @@ let analyticsService;
 // Function to check Todoist connection status
 async function checkTodoistConnection() {
     try {
-        const response = await fetch('/api/debug/session', {
+        const response = await fetch('/api/auth/check', {
             credentials: 'include'
         });
         const data = await response.json();
@@ -124,7 +124,7 @@ async function checkTodoistConnection() {
         
         if (!status || !connectBtn || !disconnectBtn) return;
         
-        if (data.isAuthenticated && data.user) {
+        if (data.connections.todoist) {
             status.textContent = 'Connected';
             status.classList.add('connected');
             connectBtn.style.display = 'none';

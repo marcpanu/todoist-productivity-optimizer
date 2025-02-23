@@ -176,7 +176,7 @@ function connectTodoist() {
 
 // Function to handle Google connection
 function connectGoogle() {
-    window.location.href = '/api/google/auth';
+    window.location.href = '/api/google/auth?skip_todoist_auth=true';
 }
 
 // Function to handle Todoist disconnection

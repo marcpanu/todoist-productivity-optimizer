@@ -8,14 +8,37 @@
     <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Check authentication
-        if (!localStorage.getItem('isAuthenticated') && !window.location.pathname.includes('login.html')) {
-            window.location.href = '/login.html';
+        // Check session-based authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/check', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok && !window.location.pathname.includes('login.html')) {
+                    window.location.href = '/login.html';
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                if (!window.location.pathname.includes('login.html')) {
+                    window.location.href = '/login.html';
+                }
+            }
         }
 
+        // Check auth on page load
+        checkAuth();
+
         // Add logout function
-        window.logout = function() {
-            localStorage.removeItem('isAuthenticated');
+        window.logout = async function() {
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
             window.location.href = '/login.html';
         }
     </script>

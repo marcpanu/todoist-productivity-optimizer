@@ -27,18 +27,47 @@ const limiter = rateLimit({
     max: process.env.RATE_LIMIT_MAX_REQUESTS || 50
 });
 
-// Middleware to check if user is authenticated
-const isAuthenticated = (req, res, next) => {
-    if (req.isAuthenticated()) {
-        return next();
+// Session configuration
+const sessionConfig = {
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
-    res.status(401).json({ error: 'Not authenticated' });
+};
+
+// Middleware to check if user is logged into the app
+const requireAppLogin = (req, res, next) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ error: 'App login required' });
+    }
+    next();
+};
+
+// Middleware to check service-specific auth
+const requireTodoistAuth = (req, res, next) => {
+    if (!req.user?.id) {
+        return res.status(401).json({ error: 'Todoist authentication required' });
+    }
+    next();
+};
+
+const requireGoogleAuth = (req, res, next) => {
+    if (!req.user?.googleId) {
+        return res.status(401).json({ error: 'Google authentication required' });
+    }
+    next();
 };
 
 // Middleware
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(limiter);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 const corsOptions = {
@@ -54,69 +83,40 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve static files from UI directory
-app.use(express.static(path.join(__dirname, '..', 'UI')));
-
-// Session configuration
-const sessionConfig = {
-    secret: process.env.SESSION_SECRET || 'dev-secret',
-    resave: false,
-    saveUninitialized: false,
-    proxy: true,
-    name: 'todoist.sid',
-    cookie: {
-        secure: true,
-        sameSite: 'none',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        path: '/',
-        httpOnly: true
-    }
-};
-
-app.set('trust proxy', 1);
-
-// Debug middleware for session issues
-app.use((req, res, next) => {
-    console.log('Session Debug:', {
-        sessionId: req.sessionID,
-        hasSession: !!req.session,
-        isAuthenticated: req.isAuthenticated?.(),
-        cookies: req.cookies,
-        path: req.path,
-        headers: req.headers
-    });
-    next();
-});
-
-// Initialize passport and session
 app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Passport serialization
-passport.serializeUser((user, done) => {
-    console.log('Serializing user:', user);
-    done(null, user);
+// Basic app login endpoint (temporary - should be replaced with proper auth)
+app.post('/api/auth/login', (req, res) => {
+    // This is a simplified login - you should implement proper authentication
+    req.session.userId = 'temp-user-id';
+    res.json({ success: true });
 });
 
-passport.deserializeUser((user, done) => {
-    console.log('Deserializing user:', user);
-    done(null, user);
+app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy();
+    res.json({ success: true });
 });
 
 // Mount API routes
-app.use('/api/ai', isAuthenticated, openaiRouter);
+app.use('/api/ai', openaiRouter);
+app.use('/api/todoist/data', requireAppLogin, requireTodoistAuth, googleRouter);
+app.use('/api/google', requireAppLogin, requireGoogleAuth, googleRouter);
 
-// Split Google routes into auth and protected routes
-const googleAuthRouter = express.Router();
-googleAuthRouter.get('/auth', passport.authenticate('google'));
-googleAuthRouter.get('/auth/callback', 
-    passport.authenticate('google', { failWithError: true }),
+// Auth routes (no app login required)
+app.use('/auth/todoist', passport.authenticate('todoist', {
+    scope: ['data:read_write,data:delete']
+}));
+
+app.get('/auth/todoist/callback',
+    (req, res, next) => {
+        console.log('OAuth callback received, state:', req.query.state);
+        next();
+    },
+    passport.authenticate('todoist', { failWithError: true }),
     (req, res) => {
-        console.log('Google OAuth callback success, saving session');
+        console.log('OAuth callback success, saving session');
         req.session.save((err) => {
             if (err) {
                 console.error('Session save error:', err);
@@ -127,24 +127,45 @@ googleAuthRouter.get('/auth/callback',
         });
     },
     (err, req, res, next) => {
-        console.error('Google OAuth callback error:', err);
+        console.error('OAuth callback error:', err);
         res.redirect('/?auth=error');
     }
 );
-app.use('/api/google', googleAuthRouter);
-app.use('/api/google', isAuthenticated, googleRouter);
+
+app.use('/auth/google', passport.authenticate('google'));
+
+// Protected app routes (require app login)
+app.get('/api/todoist/user', requireAppLogin, async (req, res) => {
+    try {
+        const response = await axios.get('https://api.todoist.com/sync/v9/user', {
+            headers: {
+                'Authorization': `Bearer ${req.user.accessToken}`
+            }
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Todoist API Error:', error.response?.data || error.message);
+        res.status(500).json({ 
+            error: 'Failed to fetch Todoist data',
+            details: error.response?.data || error.message
+        });
+    }
+});
 
 // Auth check endpoint
 app.get('/api/auth/check', (req, res) => {
     res.json({
-        isAuthenticated: req.isAuthenticated(),
-        user: req.user,
-        session: req.session,
+        authenticated: !!req.session.userId,
         connections: {
             todoist: !!req.user?.id,
             google: !!req.user?.googleId
         }
     });
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK' });
 });
 
 // Todoist OAuth2 strategy
@@ -180,170 +201,6 @@ const todoistStrategy = new OAuth2Strategy({
 });
 
 passport.use('todoist', todoistStrategy);
-
-// Auth routes
-app.get('/api/auth/todoist', (req, res, next) => {
-    console.log('Starting OAuth flow');
-    passport.authenticate('todoist', {
-        scope: ['data:read_write,data:delete']
-    })(req, res, next);
-});
-
-app.get('/api/auth/todoist/callback',
-    (req, res, next) => {
-        console.log('OAuth callback received, state:', req.query.state);
-        next();
-    },
-    passport.authenticate('todoist', { failWithError: true }),
-    (req, res) => {
-        console.log('OAuth callback success, saving session');
-        req.session.save((err) => {
-            if (err) {
-                console.error('Session save error:', err);
-                return res.redirect('/?auth=session-error');
-            }
-            console.log('Session saved successfully');
-            res.redirect('/');
-        });
-    },
-    (err, req, res, next) => {
-        console.error('OAuth callback error:', err);
-        res.redirect('/?auth=error');
-    }
-);
-
-// Test endpoint to get Todoist user data
-app.get('/api/todoist/user', isAuthenticated, async (req, res) => {
-    try {
-        const response = await axios.get('https://api.todoist.com/sync/v9/user', {
-            headers: {
-                'Authorization': `Bearer ${req.user.accessToken}`
-            }
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error('Todoist API Error:', error.response?.data || error.message);
-        res.status(500).json({ 
-            error: 'Failed to fetch Todoist data',
-            details: error.response?.data || error.message
-        });
-    }
-});
-
-// Todoist API endpoints
-app.get('/api/todoist/data', isAuthenticated, async (req, res) => {
-    try {
-        // Get all resources in one call using sync API
-        const syncResponse = await axios.post('https://api.todoist.com/sync/v9/sync', {
-            sync_token: '*',
-            resource_types: '["projects", "items", "sections", "labels"]'
-        }, {
-            headers: {
-                'Authorization': `Bearer ${req.user.accessToken}`
-            }
-        });
-
-        // Process the data to make it more readable
-        const { projects, items, sections, labels } = syncResponse.data;
-
-        // Create maps for quick lookups
-        const projectMap = {};
-        projects.forEach(project => {
-            projectMap[project.id] = project.name;
-        });
-
-        const sectionMap = {};
-        sections.forEach(section => {
-            sectionMap[section.id] = {
-                name: section.name,
-                projectId: section.project_id
-            };
-        });
-
-        const labelMap = {};
-        labels.forEach(label => {
-            labelMap[label.id] = label.name;
-        });
-
-        // Enhance tasks with readable project and section names
-        const enhancedTasks = items.map(task => ({
-            ...task,
-            project_name: projectMap[task.project_id] || 'Unknown Project',
-            section_name: task.section_id ? sectionMap[task.section_id]?.name : null,
-            label_names: task.labels?.map(labelId => labelMap[labelId]) || []
-        }));
-
-        res.json({
-            tasks: enhancedTasks,
-            projects: projects.map(p => ({
-                id: p.id,
-                name: p.name,
-                color: p.color,
-                view_style: p.view_style
-            })),
-            sections: sections.map(s => ({
-                id: s.id,
-                name: s.name,
-                project_id: s.project_id,
-                project_name: projectMap[s.project_id]
-            })),
-            labels: labels.map(l => ({
-                id: l.id,
-                name: l.name,
-                color: l.color
-            }))
-        });
-    } catch (error) {
-        console.error('Todoist API Error:', error.response?.data || error.message);
-        res.status(500).json({ 
-            error: 'Failed to fetch Todoist data',
-            details: error.response?.data || error.message
-        });
-    }
-});
-
-// Logout endpoint
-app.post('/api/auth/logout', (req, res) => {
-    req.logout((err) => {
-        if (err) {
-            console.error('Logout error:', err);
-            return res.status(500).json({ error: 'Failed to logout' });
-        }
-        res.json({ success: true });
-    });
-});
-
-// Debug endpoint to check session
-app.get('/api/debug/session', (req, res) => {
-    res.json({
-        isAuthenticated: req.isAuthenticated(),
-        user: req.user,
-        session: req.session
-    });
-});
-
-// Todoist user status endpoint
-app.get('/api/todoist/user', (req, res) => {
-    if (req.isAuthenticated() && req.user) {
-        res.json({
-            authenticated: true,
-            user: {
-                id: req.user.id,
-                name: req.user.name,
-                email: req.user.email
-            }
-        });
-    } else {
-        res.status(401).json({
-            authenticated: false
-        });
-    }
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK' });
-});
 
 // Error handling
 app.use((err, req, res, next) => {

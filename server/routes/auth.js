@@ -85,14 +85,26 @@ router.get('/todoist/callback',
     }
 );
 
+// Define Todoist-specific properties
+const TODOIST_PROPERTIES = ['id', 'email', 'name', 'accessToken'];
+
 router.post('/todoist/disconnect', (req, res) => {
     if (req.user) {
-        delete req.user.id;
-        delete req.user.email;
-        delete req.user.name;
-        delete req.user.accessToken;
+        // Remove all Todoist properties
+        TODOIST_PROPERTIES.forEach(prop => {
+            delete req.user[prop];
+        });
+        // Save changes to session
+        req.session.save((err) => {
+            if (err) {
+                console.error('Error saving session after Todoist disconnect:', err);
+                return res.status(500).json({ error: 'Failed to save session' });
+            }
+            res.json({ success: true });
+        });
+    } else {
+        res.json({ success: true });
     }
-    res.json({ success: true });
 });
 
 // Google OAuth routes
@@ -120,15 +132,26 @@ router.get('/google/callback',
     }
 );
 
+// Define Google-specific properties
+const GOOGLE_PROPERTIES = ['googleId', 'googleEmail', 'googleName', 'googleAccessToken', 'googleRefreshToken'];
+
 router.post('/google/disconnect', (req, res) => {
     if (req.user) {
-        delete req.user.googleId;
-        delete req.user.googleEmail;
-        delete req.user.googleName;
-        delete req.user.googleAccessToken;
-        delete req.user.googleRefreshToken;
+        // Remove all Google properties
+        GOOGLE_PROPERTIES.forEach(prop => {
+            delete req.user[prop];
+        });
+        // Save changes to session
+        req.session.save((err) => {
+            if (err) {
+                console.error('Error saving session after Google disconnect:', err);
+                return res.status(500).json({ error: 'Failed to save session' });
+            }
+            res.json({ success: true });
+        });
+    } else {
+        res.json({ success: true });
     }
-    res.json({ success: true });
 });
 
 module.exports = router;

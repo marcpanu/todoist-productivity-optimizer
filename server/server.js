@@ -74,9 +74,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 const corsOptions = {
-    origin: process.env.NODE_ENV === 'production' 
-        ? 'https://todoist-productivity-optimizer.vercel.app'
-        : 'http://localhost:3000',
+    origin: 'https://todoist-productivity-optimizer.vercel.app',
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],

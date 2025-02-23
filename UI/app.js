@@ -3,7 +3,8 @@ const API_CONFIG = {
     TODOIST_API_URL: 'https://api.todoist.com/rest/v2',
     OPENAI_API_URL: 'https://api.openai.com/v1',
     GMAIL_API_URL: 'https://gmail.googleapis.com/gmail/v1',
-    GCAL_API_URL: 'https://www.googleapis.com/calendar/v3'
+    GCAL_API_URL: 'https://www.googleapis.com/calendar/v3',
+    LOCAL_API_URL: 'https://your-vercel-url.com'
 };
 
 // Services
@@ -176,7 +177,7 @@ function connectTodoist() {
 
 // Function to handle Google connection
 function connectGoogle() {
-    window.location.href = '/api/google/auth?skip_todoist_auth=true';
+    window.location.href = '/auth/google';
 }
 
 // Function to handle Todoist disconnection

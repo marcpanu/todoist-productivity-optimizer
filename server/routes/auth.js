@@ -2,18 +2,15 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const { tokenManager } = require('../config/oauth');
-const bcrypt = require('bcryptjs');
 
 // In-memory user store (replace with database in production)
 const users = new Map();
 
 // Initialize with a default user (replace with proper user management)
 const initializeDefaultUser = async () => {
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(process.env.DEFAULT_PASSWORD || 'todoist2025', salt);
     users.set(process.env.DEFAULT_USERNAME || 'marcpanu', {
         username: process.env.DEFAULT_USERNAME || 'marcpanu',
-        password: hashedPassword
+        password: process.env.DEFAULT_PASSWORD || 'todoist2025'
     });
 };
 initializeDefaultUser();
@@ -63,12 +60,11 @@ router.get('/status/google', (req, res) => {
     }
 });
 
-// App authentication
-router.post('/login', async (req, res) => {
+// Simple authentication
+router.post('/login', (req, res) => {
     try {
         const { username, password } = req.body;
         
-        // Simple authentication (DO NOT use in production)
         if (username === (process.env.DEFAULT_USERNAME || 'marcpanu') && 
             password === (process.env.DEFAULT_PASSWORD || 'todoist2025')) {
             req.session.userId = username;

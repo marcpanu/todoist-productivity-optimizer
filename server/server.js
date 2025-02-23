@@ -6,38 +6,40 @@ require('dotenv').config({
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
+const OAuth2Strategy = require('passport-oauth2').Strategy;
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const OAuth2Strategy = require('passport-oauth2').Strategy;
 const axios = require('axios');
 const path = require('path');
+const { google } = require('googleapis');
 
 // Import routes
-const openaiRouter = require('./openai');
-const googleRouter = require('./google');
-const todoistDataRouter = require('./todoistData');
-const googleCalendarRouter = require('./googleCalendar');
-const googleGmailRouter = require('./googleGmail');
+const authRouter = require('./routes/auth');
+const openaiRouter = require('./routes/openai');
+const todoistDataRouter = require('./routes/todoistData');
+const googleCalendarRouter = require('./routes/googleCalendar');
+const googleGmailRouter = require('./routes/googleGmail');
 
 // Initialize express app
 const app = express();
 
 // Configure rate limiting
 const limiter = rateLimit({
-    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
-    max: process.env.RATE_LIMIT_MAX_REQUESTS || 50
+    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 900000, // 15 minutes
+    max: process.env.RATE_LIMIT_MAX_REQUESTS || 50 // limit each IP to 50 requests per windowMs
 });
 
 // Session configuration
 const sessionConfig = {
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    name: 'productivity-optimizer.sid', // Specific name for our session cookie
+    secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
     saveUninitialized: false,
     cookie: {
         secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 };
@@ -74,10 +76,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 const corsOptions = {
-    origin: 'https://todoist-productivity-optimizer.vercel.app',
+    origin: process.env.NODE_ENV === 'production'
+        ? 'https://todoist-productivity-optimizer.vercel.app'
+        : 'http://localhost:3000',
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['Set-Cookie'],
     preflightContinue: true,
     optionsSuccessStatus: 204
@@ -98,53 +102,6 @@ passport.deserializeUser((user, done) => {
     console.log('Deserializing user:', user);
     done(null, user);
 });
-
-// Basic app login endpoint (temporary - should be replaced with proper auth)
-app.post('/api/auth/login', (req, res) => {
-    const { username, password } = req.body;
-    
-    // In production, this should use a secure password hash and database
-    const VALID_USERNAME = 'marcpanu';
-    const VALID_PASSWORD = 'todoist2025';
-
-    if (username === VALID_USERNAME && password === VALID_PASSWORD) {
-        req.session.userId = username;
-        res.json({ success: true });
-    } else {
-        res.status(401).json({ error: 'Invalid credentials' });
-    }
-});
-
-app.post('/api/auth/logout', (req, res) => {
-    req.session.destroy();
-    res.json({ success: true });
-});
-
-// Mount API routes
-app.use('/api/ai', openaiRouter);  // No authentication required for OpenAI routes
-app.use('/api/todoist/data', requireAppLogin, requireTodoistAuth, todoistDataRouter);
-app.use('/api/google/calendar', requireAppLogin, requireGoogleAuth, googleCalendarRouter);
-app.use('/api/google/gmail', requireAppLogin, requireGoogleAuth, googleGmailRouter);
-
-// Auth routes (no app login required)
-app.get('/auth/todoist', passport.authenticate('todoist', {
-    scope: ['data:read_write,data:delete']
-}));
-
-app.get('/auth/todoist/callback',
-    (req, res, next) => {
-        console.log('Received OAuth callback, query:', req.query);
-        next();
-    },
-    passport.authenticate('todoist', { 
-        failureRedirect: '/?auth=error',
-        successRedirect: '/'
-    }),
-    (req, res) => {
-        console.log('OAuth callback success, user:', req.user);
-        res.redirect('/');
-    }
-);
 
 // Todoist OAuth2 strategy
 const todoistStrategy = new OAuth2Strategy({
@@ -180,16 +137,60 @@ const todoistStrategy = new OAuth2Strategy({
 
 passport.use('todoist', todoistStrategy);
 
-// Auth check endpoint
-app.get('/api/auth/check', (req, res) => {
-    res.json({
-        authenticated: !!req.session.userId,
-        connections: {
-            todoist: !!req.user?.id,
-            google: !!req.user?.googleId
-        }
-    });
-});
+// Google OAuth2 strategy
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+
+// Initialize OAuth2 client
+function getOAuth2Client() {
+    return new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+    );
+}
+
+passport.use('google', new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: '/auth/google/callback',  // Updated to match our URL pattern
+    scope: [
+        'profile',
+        'email',
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/gmail.send'
+    ]
+}, async (accessToken, refreshToken, profile, done) => {
+    try {
+        // Store tokens
+        const oauth2Client = getOAuth2Client();
+        oauth2Client.setCredentials({
+            access_token: accessToken,
+            refresh_token: refreshToken
+        });
+
+        // Create user object with Google info
+        const user = {
+            googleId: profile.id,
+            googleEmail: profile.emails[0].value,
+            googleName: profile.displayName,
+            googleAccessToken: accessToken,
+            googleRefreshToken: refreshToken
+        };
+
+        console.log('Google OAuth callback user:', user);
+        return done(null, user);
+    } catch (error) {
+        console.error('Error in Google OAuth callback:', error);
+        return done(error);
+    }
+}));
+
+// Mount API routes
+app.use('/auth', authRouter);  // New auth router
+app.use('/api/ai', openaiRouter);  // No authentication required for OpenAI routes
+app.use('/api/todoist/data', requireAppLogin, requireTodoistAuth, todoistDataRouter);
+app.use('/api/google/calendar', requireAppLogin, requireGoogleAuth, googleCalendarRouter);
+app.use('/api/google/gmail', requireAppLogin, requireGoogleAuth, googleGmailRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

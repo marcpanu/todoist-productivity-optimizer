@@ -32,10 +32,33 @@ A web application that integrates with Todoist to provide enhanced productivity 
 
 ## API Endpoints
 
-### Authentication
-- `GET /api/auth/todoist`: Start Todoist OAuth flow
-- `GET /api/auth/todoist/callback`: OAuth callback handler
-- `POST /api/auth/logout`: User logout
+### Authentication Endpoints
+All authentication-related endpoints are under the `/auth` path:
+
+```
+/auth/                           # All authentication related endpoints
+  ├── todoist/                   # Todoist OAuth
+  │   ├── connect               # Start OAuth flow
+  │   └── callback             # OAuth callback
+  ├── google/                    # Google OAuth
+  │   ├── connect              # Start OAuth flow
+  │   └── callback             # OAuth callback
+  └── status/                    # Status endpoints
+      ├── app                   # App login status
+      ├── todoist              # Todoist connection status
+      └── google               # Google connection status
+```
+
+#### OAuth Flows
+- `GET /auth/todoist/connect`: Start Todoist OAuth flow
+- `GET /auth/todoist/callback`: Todoist OAuth callback handler
+- `GET /auth/google/connect`: Start Google OAuth flow
+- `GET /auth/google/callback`: Google OAuth callback handler
+
+#### Status Endpoints
+- `GET /auth/status/app`: Check application login status
+- `GET /auth/status/todoist`: Check Todoist connection status
+- `GET /auth/status/google`: Check Google connection status
 
 ### Todoist Data
 - `GET /api/todoist/data`: Comprehensive data endpoint that returns:

@@ -113,7 +113,7 @@ let analyticsService;
 // Function to check Todoist connection status
 async function checkTodoistConnection() {
     try {
-        const response = await fetch('/api/auth/check', {
+        const response = await fetch('/auth/status/todoist', {
             credentials: 'include'
         });
         const data = await response.json();
@@ -124,7 +124,7 @@ async function checkTodoistConnection() {
         
         if (!status || !connectBtn || !disconnectBtn) return;
         
-        if (data.connections.todoist) {
+        if (data.connected) {
             status.textContent = 'Connected';
             status.classList.add('connected');
             connectBtn.style.display = 'none';
@@ -143,7 +143,7 @@ async function checkTodoistConnection() {
 // Function to check Google connection status
 async function checkGoogleConnection() {
     try {
-        const response = await fetch('/api/google/status', {
+        const response = await fetch('/auth/status/google', {
             credentials: 'include'
         });
         const data = await response.json();
@@ -172,24 +172,26 @@ async function checkGoogleConnection() {
 
 // Function to handle Todoist connection
 function connectTodoist() {
-    window.location.href = '/auth/todoist';
+    window.location.href = '/auth/todoist/connect';
 }
 
 // Function to handle Google connection
 function connectGoogle() {
-    window.location.href = '/auth/google';
+    window.location.href = '/auth/google/connect';
 }
 
 // Function to handle Todoist disconnection
 async function disconnectTodoist() {
     try {
-        const response = await fetch('/api/auth/logout', {
+        const response = await fetch('/auth/todoist/disconnect', {
             method: 'POST',
             credentials: 'include'
         });
         
         if (response.ok) {
-            checkTodoistConnection();
+            await checkTodoistConnection();
+        } else {
+            console.error('Failed to disconnect Todoist');
         }
     } catch (error) {
         console.error('Error disconnecting Todoist:', error);
@@ -199,16 +201,36 @@ async function disconnectTodoist() {
 // Function to handle Google disconnection
 async function disconnectGoogle() {
     try {
-        const response = await fetch('/api/google/disconnect', {
+        const response = await fetch('/auth/google/disconnect', {
             method: 'POST',
             credentials: 'include'
         });
         
         if (response.ok) {
-            checkGoogleConnection();
+            await checkGoogleConnection();
+        } else {
+            console.error('Failed to disconnect Google');
         }
     } catch (error) {
         console.error('Error disconnecting Google:', error);
+    }
+}
+
+// Function to handle app logout
+async function logout() {
+    try {
+        const response = await fetch('/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            window.location.href = '/login.html';
+        } else {
+            console.error('Failed to logout');
+        }
+    } catch (error) {
+        console.error('Error logging out:', error);
     }
 }
 

@@ -41,6 +41,7 @@ const sessionConfig = {
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 };

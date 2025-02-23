@@ -38,7 +38,9 @@ router.post('/login', (req, res) => {
         receivedPassword: req.body.password,
         validUsername: 'marcpanu',
         validPassword: 'todoist2025',
-        body: req.body
+        body: req.body,
+        session: req.session,
+        headers: req.headers
     });
 
     const { username, password } = req.body;
@@ -50,6 +52,7 @@ router.post('/login', (req, res) => {
     if (username === VALID_USERNAME && password === VALID_PASSWORD) {
         console.log('Login successful');
         req.session.userId = username;
+        console.log('Session after login:', req.session);
         res.json({ success: true });
     } else {
         console.log('Login failed');

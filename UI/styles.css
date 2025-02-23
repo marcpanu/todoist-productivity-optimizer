@@ -1,11 +1,14 @@
 :root {
     --primary-color: #e44332;
+    --primary-hover-color: #c93d2e;
     --surface-color: #ffffff;
     --background-color: #fafafa;
     --text-primary: #202020;
     --text-secondary: #808080;
     --border-color: #e0e0e0;
     --error-color: #d32f2f;
+    --error-hover-color: #b71c1c;
+    --error-background: #ffebee;
     --success-color: #388e3c;
 }
 
@@ -505,12 +508,12 @@ body {
 }
 
 .connect-button {
-    background: var(--success-color);
+    background: var(--primary-color);
     color: white;
 }
 
 .connect-button:hover {
-    background: #2d7230;
+    background: var(--primary-hover-color);
 }
 
 .disconnect-button {
@@ -558,16 +561,17 @@ body {
 
 /* CSS Variables */
 :root {
-    --primary-color: #0366d6;
-    --primary-hover-color: #0256b4;
-    --error-color: #d73a49;
-    --error-hover-color: #cb2431;
-    --error-background: #ffeef0;
-    --success-color: #28a745;
+    --primary-color: #e44332;
+    --primary-hover-color: #c93d2e;
     --surface-color: #ffffff;
-    --text-primary: #24292e;
-    --text-secondary: #586069;
-    --border-color: #e1e4e8;
+    --background-color: #fafafa;
+    --text-primary: #202020;
+    --text-secondary: #808080;
+    --border-color: #e0e0e0;
+    --error-color: #d32f2f;
+    --error-hover-color: #b71c1c;
+    --error-background: #ffebee;
+    --success-color: #388e3c;
 }
 
 .integrations {
@@ -625,7 +629,7 @@ body {
 }
 
 .connect-button:hover {
-    background: #c93d2d;
+    background: var(--primary-hover-color);
 }
 
 .disconnect-button {
@@ -705,7 +709,7 @@ body {
 }
 
 .login-button:hover {
-    background-color: var(--primary-dark-color);
+    background-color: var(--primary-hover-color);
 }
 
 .error-message {

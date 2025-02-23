@@ -310,9 +310,12 @@ document.addEventListener('DOMContentLoaded', () => {
             navItems.forEach(item => {
                 if (item) {
                     item.addEventListener('click', handleNavigation);
-                    // Check Todoist connection when profile tab is clicked
+                    // Check connections when profile tab is clicked
                     if (item.dataset.tab === 'profile-tab') {
-                        item.addEventListener('click', checkTodoistConnection);
+                        item.addEventListener('click', () => {
+                            checkTodoistConnection();
+                            checkGoogleConnection();
+                        });
                     }
                 }
             });

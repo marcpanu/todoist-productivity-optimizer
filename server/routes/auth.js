@@ -36,8 +36,12 @@ router.get('/status/google', (req, res) => {
     console.log('User:', req.user);
     console.log('========================\n');
 
+    const connected = !!req.user?.googleId;
+    console.log('Google connected status:', connected);
+    console.log('Google ID:', req.user?.googleId);
+
     res.json({
-        connected: !!req.user?.googleId,
+        connected: connected,
         user: req.user ? {
             id: req.user.googleId,
             email: req.user.googleEmail,

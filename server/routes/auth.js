@@ -33,6 +33,14 @@ router.get('/status/google', (req, res) => {
 
 // App authentication
 router.post('/login', (req, res) => {
+    console.log('Login attempt:', {
+        receivedUsername: req.body.username,
+        receivedPassword: req.body.password,
+        validUsername: 'marcpanu',
+        validPassword: 'todoist2025',
+        body: req.body
+    });
+
     const { username, password } = req.body;
     
     // In production, this should use a secure password hash and database
@@ -40,9 +48,11 @@ router.post('/login', (req, res) => {
     const VALID_PASSWORD = 'todoist2025';
 
     if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+        console.log('Login successful');
         req.session.userId = username;
         res.json({ success: true });
     } else {
+        console.log('Login failed');
         res.status(401).json({ error: 'Invalid credentials' });
     }
 });

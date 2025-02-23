@@ -112,107 +112,193 @@ let analyticsService;
 
 // Function to check Todoist connection status
 async function checkTodoistConnection() {
+    const status = document.getElementById('todoist-status');
+    const connectBtn = document.getElementById('todoist-connect');
+    const disconnectBtn = document.getElementById('todoist-disconnect');
+    const userInfo = document.getElementById('todoist-user-info');
+    const userEmail = document.getElementById('todoist-email');
+    const errorDiv = document.getElementById('todoist-error');
+    
+    if (!status || !connectBtn || !disconnectBtn || !userInfo || !userEmail || !errorDiv) return;
+    
+    // Reset UI state
+    status.textContent = 'Checking...';
+    errorDiv.style.display = 'none';
+    userInfo.style.display = 'none';
+    connectBtn.disabled = true;
+    disconnectBtn.disabled = true;
+    
     try {
         const response = await fetch('/auth/status/todoist', {
             credentials: 'include'
         });
+        
+        if (!response.ok) {
+            throw new Error('Failed to check Todoist status');
+        }
+        
         const data = await response.json();
         
-        const status = document.getElementById('todoist-status');
-        const connectBtn = document.getElementById('todoist-connect');
-        const disconnectBtn = document.getElementById('todoist-disconnect');
-        
-        if (!status || !connectBtn || !disconnectBtn) return;
-        
-        if (data.connected) {
+        if (data.connected && data.user) {
             status.textContent = 'Connected';
             status.classList.add('connected');
+            userInfo.style.display = 'block';
+            userEmail.textContent = data.user.email;
             connectBtn.style.display = 'none';
             disconnectBtn.style.display = 'block';
+            disconnectBtn.disabled = false;
         } else {
             status.textContent = 'Not Connected';
             status.classList.remove('connected');
+            userInfo.style.display = 'none';
             connectBtn.style.display = 'block';
+            connectBtn.disabled = false;
             disconnectBtn.style.display = 'none';
         }
     } catch (error) {
         console.error('Error checking Todoist connection:', error);
+        status.textContent = 'Error';
+        status.classList.remove('connected');
+        errorDiv.style.display = 'block';
+        errorDiv.querySelector('.error-message').textContent = 'Failed to check connection status';
+        connectBtn.style.display = 'block';
+        disconnectBtn.style.display = 'none';
+        connectBtn.disabled = false;
     }
 }
 
 // Function to check Google connection status
 async function checkGoogleConnection() {
+    const status = document.getElementById('google-status');
+    const connectBtn = document.getElementById('google-connect');
+    const disconnectBtn = document.getElementById('google-disconnect');
+    const userInfo = document.getElementById('google-user-info');
+    const userEmail = document.getElementById('google-email');
+    const errorDiv = document.getElementById('google-error');
+    
+    if (!status || !connectBtn || !disconnectBtn || !userInfo || !userEmail || !errorDiv) return;
+    
+    // Reset UI state
+    status.textContent = 'Checking...';
+    errorDiv.style.display = 'none';
+    userInfo.style.display = 'none';
+    connectBtn.disabled = true;
+    disconnectBtn.disabled = true;
+    
     try {
         const response = await fetch('/auth/status/google', {
             credentials: 'include'
         });
+        
+        if (!response.ok) {
+            throw new Error('Failed to check Google status');
+        }
+        
         const data = await response.json();
         
-        const status = document.getElementById('google-status');
-        const connectBtn = document.getElementById('google-connect');
-        const disconnectBtn = document.getElementById('google-disconnect');
-        
-        if (!status || !connectBtn || !disconnectBtn) return;
-        
-        if (data.connected) {
+        if (data.connected && data.user) {
             status.textContent = 'Connected';
             status.classList.add('connected');
+            userInfo.style.display = 'block';
+            userEmail.textContent = data.user.email;
             connectBtn.style.display = 'none';
             disconnectBtn.style.display = 'block';
+            disconnectBtn.disabled = false;
         } else {
             status.textContent = 'Not Connected';
             status.classList.remove('connected');
+            userInfo.style.display = 'none';
             connectBtn.style.display = 'block';
+            connectBtn.disabled = false;
             disconnectBtn.style.display = 'none';
         }
     } catch (error) {
         console.error('Error checking Google connection:', error);
+        status.textContent = 'Error';
+        status.classList.remove('connected');
+        errorDiv.style.display = 'block';
+        errorDiv.querySelector('.error-message').textContent = 'Failed to check connection status';
+        connectBtn.style.display = 'block';
+        disconnectBtn.style.display = 'none';
+        connectBtn.disabled = false;
     }
 }
 
 // Function to handle Todoist connection
 function connectTodoist() {
+    const connectBtn = document.getElementById('todoist-connect');
+    if (connectBtn) connectBtn.disabled = true;
     window.location.href = '/auth/todoist/connect';
 }
 
 // Function to handle Google connection
 function connectGoogle() {
+    const connectBtn = document.getElementById('google-connect');
+    if (connectBtn) connectBtn.disabled = true;
     window.location.href = '/auth/google/connect';
 }
 
 // Function to handle Todoist disconnection
 async function disconnectTodoist() {
+    const status = document.getElementById('todoist-status');
+    const disconnectBtn = document.getElementById('todoist-disconnect');
+    const errorDiv = document.getElementById('todoist-error');
+    
+    if (!status || !disconnectBtn || !errorDiv) return;
+    
+    status.textContent = 'Disconnecting...';
+    disconnectBtn.disabled = true;
+    errorDiv.style.display = 'none';
+    
     try {
         const response = await fetch('/auth/todoist/disconnect', {
             method: 'POST',
             credentials: 'include'
         });
         
-        if (response.ok) {
-            await checkTodoistConnection();
-        } else {
-            console.error('Failed to disconnect Todoist');
+        if (!response.ok) {
+            throw new Error('Failed to disconnect Todoist');
         }
+        
+        await checkTodoistConnection();
     } catch (error) {
         console.error('Error disconnecting Todoist:', error);
+        status.textContent = 'Error';
+        errorDiv.style.display = 'block';
+        errorDiv.querySelector('.error-message').textContent = 'Failed to disconnect';
+        disconnectBtn.disabled = false;
     }
 }
 
 // Function to handle Google disconnection
 async function disconnectGoogle() {
+    const status = document.getElementById('google-status');
+    const disconnectBtn = document.getElementById('google-disconnect');
+    const errorDiv = document.getElementById('google-error');
+    
+    if (!status || !disconnectBtn || !errorDiv) return;
+    
+    status.textContent = 'Disconnecting...';
+    disconnectBtn.disabled = true;
+    errorDiv.style.display = 'none';
+    
     try {
         const response = await fetch('/auth/google/disconnect', {
             method: 'POST',
             credentials: 'include'
         });
         
-        if (response.ok) {
-            await checkGoogleConnection();
-        } else {
-            console.error('Failed to disconnect Google');
+        if (!response.ok) {
+            throw new Error('Failed to disconnect Google');
         }
+        
+        await checkGoogleConnection();
     } catch (error) {
         console.error('Error disconnecting Google:', error);
+        status.textContent = 'Error';
+        errorDiv.style.display = 'block';
+        errorDiv.querySelector('.error-message').textContent = 'Failed to disconnect';
+        disconnectBtn.disabled = false;
     }
 }
 

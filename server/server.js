@@ -145,8 +145,14 @@ const todoistStrategy = new OAuth2Strategy({
     callbackURL: process.env.TODOIST_REDIRECT_URI,
     state: true,
     passReqToCallback: true
-}, async (req, accessToken, refreshToken, profile, done) => {
+}, async (req, accessToken, refreshToken, params, profile, done) => {
     try {
+        // Validate state parameter
+        if (!req.session.oauth2state || req.query.state !== req.session.oauth2state) {
+            return done(new Error('Invalid OAuth state'));
+        }
+        delete req.session.oauth2state; // Clean up after validation
+
         console.log('\n=== Todoist OAuth Callback ===');
         console.log('Current session:', req.session);
         console.log('Current user:', req.user);
@@ -161,6 +167,7 @@ const todoistStrategy = new OAuth2Strategy({
         // Merge with existing user data if present
         const todoistData = {
             accessToken,
+            refreshToken, // Store refresh token if provided
             id: response.data.id,
             email: response.data.email,
             name: response.data.full_name
@@ -193,7 +200,7 @@ function getOAuth2Client() {
 passport.use('google', new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: '/auth/google/callback',  // Updated to match our URL pattern
+    callbackURL: process.env.GOOGLE_REDIRECT_URI,
     scope: [
         'profile',
         'email',
@@ -203,6 +210,12 @@ passport.use('google', new GoogleStrategy({
     passReqToCallback: true
 }, async (req, accessToken, refreshToken, profile, done) => {
     try {
+        // Validate state parameter
+        if (!req.session.oauth2state || req.query.state !== req.session.oauth2state) {
+            return done(new Error('Invalid OAuth state'));
+        }
+        delete req.session.oauth2state; // Clean up after validation
+
         console.log('\n=== Google OAuth Callback ===');
         console.log('Current session:', req.session);
         console.log('Current user:', req.user);

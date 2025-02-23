@@ -1,111 +1,133 @@
 const express = require('express');
 const passport = require('passport');
 const router = express.Router();
+const { tokenManager } = require('../config/oauth');
+const bcrypt = require('bcryptjs');
 
-// Status endpoints
-router.get('/status/app', (req, res) => {
-    console.log('\n=== App Status Check ===');
-    console.log('Session:', req.session);
-    console.log('User:', req.user);
-    console.log('======================\n');
+// In-memory user store (replace with database in production)
+const users = new Map();
 
-    res.json({
-        authenticated: !!req.session.userId
+// Initialize with a default user (replace with proper user management)
+const initializeDefaultUser = async () => {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(process.env.DEFAULT_PASSWORD || 'todoist2025', salt);
+    users.set(process.env.DEFAULT_USERNAME || 'marcpanu', {
+        username: process.env.DEFAULT_USERNAME || 'marcpanu',
+        password: hashedPassword
     });
+};
+initializeDefaultUser();
+
+// Status endpoints with proper error handling
+router.get('/status/app', (req, res) => {
+    try {
+        res.json({
+            authenticated: !!req.session.userId
+        });
+    } catch (error) {
+        console.error('Error checking app status:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 router.get('/status/todoist', (req, res) => {
-    console.log('\n=== Todoist Status Check ===');
-    console.log('Session:', req.session);
-    console.log('User:', req.user);
-    console.log('=========================\n');
-
-    res.json({
-        connected: !!req.user?.id,
-        user: req.user ? {
-            id: req.user.id,
-            email: req.user.email,
-            name: req.user.name
-        } : null
-    });
+    try {
+        res.json({
+            connected: !!req.user?.id,
+            user: req.user ? {
+                id: req.user.id,
+                email: req.user.email,
+                name: req.user.name
+            } : null
+        });
+    } catch (error) {
+        console.error('Error checking Todoist status:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 router.get('/status/google', (req, res) => {
-    console.log('\n=== Google Status Check ===');
-    console.log('Session:', req.session);
-    console.log('User:', req.user);
-    console.log('========================\n');
-
-    const connected = !!req.user?.googleId;
-    console.log('Google connected status:', connected);
-    console.log('Google ID:', req.user?.googleId);
-
-    res.json({
-        connected: connected,
-        user: req.user ? {
-            id: req.user.googleId,
-            email: req.user.googleEmail,
-            name: req.user.googleName
-        } : null
-    });
-});
-
-// App authentication
-router.post('/login', (req, res) => {
-    console.log('\n=== App Login ===');
-    console.log('Body:', req.body);
-    console.log('Session before:', req.session);
-
-    const { username, password } = req.body;
-    
-    // In production, this should use a secure password hash and database
-    const VALID_USERNAME = 'marcpanu';
-    const VALID_PASSWORD = 'todoist2025';
-
-    if (username === VALID_USERNAME && password === VALID_PASSWORD) {
-        req.session.userId = username;
-        console.log('Login successful');
-        console.log('Session after:', req.session);
-        res.json({ success: true });
-    } else {
-        console.log('Login failed');
-        res.status(401).json({ error: 'Invalid credentials' });
+    try {
+        const connected = !!req.user?.googleId;
+        res.json({
+            connected: connected,
+            user: req.user ? {
+                id: req.user.googleId,
+                email: req.user.googleEmail,
+                name: req.user.googleName
+            } : null
+        });
+    } catch (error) {
+        console.error('Error checking Google status:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
-    console.log('=================\n');
 });
 
-router.post('/logout', (req, res) => {
-    console.log('\n=== App Logout ===');
-    console.log('Session before:', req.session);
-    req.session.destroy((err) => {
-        if (err) {
-            console.error('Error destroying session:', err);
-            return res.status(500).json({ error: 'Failed to logout' });
+// App authentication with secure password comparison
+router.post('/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = users.get(username);
+
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
-        console.log('Session destroyed');
+
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        req.session.userId = username;
         res.json({ success: true });
-    });
-    console.log('=================\n');
+    } catch (error) {
+        console.error('Error during login:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
-// Todoist OAuth routes
+// Secure logout with proper session and token cleanup
+router.post('/logout', async (req, res) => {
+    try {
+        // Clean up service tokens if they exist
+        if (req.user) {
+            if (req.user.id) {
+                tokenManager.removeToken(req.user.id, 'todoist');
+            }
+            if (req.user.googleId) {
+                tokenManager.removeToken(req.user.googleId, 'google');
+            }
+        }
+
+        // Destroy session
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Error destroying session:', err);
+                return res.status(500).json({ error: 'Failed to logout' });
+            }
+            res.clearCookie('productivity-optimizer.sid');
+            res.json({ success: true });
+        });
+    } catch (error) {
+        console.error('Error during logout:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Todoist OAuth routes with state validation
 router.get('/todoist/connect', (req, res, next) => {
-    console.log('\n=== Todoist Connect ===');
-    console.log('Session:', req.session);
-    console.log('User:', req.user);
-    console.log('=====================\n');
+    req.session.oauth2state = Math.random().toString(36).substring(2);
     next();
 }, passport.authenticate('todoist', {
-    scope: ['data:read_write,data:delete']
+    scope: ['data:read_write,data:delete'],
+    state: (req) => req.session.oauth2state
 }));
 
 router.get('/todoist/callback',
     (req, res, next) => {
-        console.log('\n=== Todoist Callback ===');
-        console.log('Query:', req.query);
-        console.log('Session:', req.session);
-        console.log('User:', req.user);
-        console.log('=====================\n');
+        if (!req.session.oauth2state || req.query.state !== req.session.oauth2state) {
+            return res.redirect('/?auth=error&service=todoist&reason=invalid_state');
+        }
         next();
     },
     passport.authenticate('todoist', { 
@@ -113,60 +135,59 @@ router.get('/todoist/callback',
         failureMessage: true
     }),
     (req, res) => {
-        console.log('\n=== Todoist Callback Success ===');
-        console.log('Session:', req.session);
-        console.log('User:', req.user);
-        console.log('============================\n');
         res.redirect('/?auth=success&service=todoist');
     }
 );
 
-// Define Todoist-specific properties
-const TODOIST_PROPERTIES = ['id', 'email', 'name', 'accessToken'];
+// Secure service disconnection with proper token cleanup
+router.post('/todoist/disconnect', async (req, res) => {
+    try {
+        if (req.user?.id) {
+            // Remove Todoist token
+            tokenManager.removeToken(req.user.id, 'todoist');
+            
+            // Remove Todoist properties from user
+            const todoistProps = ['id', 'email', 'name', 'accessToken', 'refreshToken'];
+            todoistProps.forEach(prop => {
+                delete req.user[prop];
+            });
 
-router.post('/todoist/disconnect', (req, res) => {
-    console.log('\n=== Todoist Disconnect ===');
-    console.log('Session before:', req.session);
-    console.log('User before:', req.user);
-
-    if (req.user) {
-        // Remove all Todoist properties
-        TODOIST_PROPERTIES.forEach(prop => {
-            delete req.user[prop];
-        });
-        // Save changes to session
-        req.session.save((err) => {
-            if (err) {
-                console.error('Error saving session after Todoist disconnect:', err);
-                return res.status(500).json({ error: 'Failed to save session' });
-            }
-            console.log('Session after:', req.session);
-            console.log('User after:', req.user);
+            // Save changes to session
+            req.session.save((err) => {
+                if (err) {
+                    console.error('Error saving session after Todoist disconnect:', err);
+                    return res.status(500).json({ error: 'Failed to save session' });
+                }
+                res.json({ success: true });
+            });
+        } else {
             res.json({ success: true });
-        });
-    } else {
-        res.json({ success: true });
+        }
+    } catch (error) {
+        console.error('Error disconnecting Todoist:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
-    console.log('========================\n');
 });
 
-// Google OAuth routes
-router.get('/google/connect', passport.authenticate('google', {
+// Google OAuth routes with state validation
+router.get('/google/connect', (req, res, next) => {
+    req.session.oauth2state = Math.random().toString(36).substring(2);
+    next();
+}, passport.authenticate('google', {
     scope: [
         'profile',
         'email',
         'https://www.googleapis.com/auth/calendar.readonly',
         'https://www.googleapis.com/auth/gmail.send'
-    ]
+    ],
+    state: (req) => req.session.oauth2state
 }));
 
 router.get('/google/callback',
     (req, res, next) => {
-        console.log('\n=== Google Callback ===');
-        console.log('Query:', req.query);
-        console.log('Session:', req.session);
-        console.log('User:', req.user);
-        console.log('=====================\n');
+        if (!req.session.oauth2state || req.query.state !== req.session.oauth2state) {
+            return res.redirect('/?auth=error&service=google&reason=invalid_state');
+        }
         next();
     },
     passport.authenticate('google', { 
@@ -174,41 +195,37 @@ router.get('/google/callback',
         failureMessage: true
     }),
     (req, res) => {
-        console.log('\n=== Google Callback Success ===');
-        console.log('Session:', req.session);
-        console.log('User:', req.user);
-        console.log('============================\n');
         res.redirect('/?auth=success&service=google');
     }
 );
 
-// Define Google-specific properties
-const GOOGLE_PROPERTIES = ['googleId', 'googleEmail', 'googleName', 'googleAccessToken', 'googleRefreshToken'];
+router.post('/google/disconnect', async (req, res) => {
+    try {
+        if (req.user?.googleId) {
+            // Remove Google token
+            tokenManager.removeToken(req.user.googleId, 'google');
+            
+            // Remove Google properties from user
+            const googleProps = ['googleId', 'googleEmail', 'googleName', 'googleAccessToken', 'googleRefreshToken'];
+            googleProps.forEach(prop => {
+                delete req.user[prop];
+            });
 
-router.post('/google/disconnect', (req, res) => {
-    console.log('\n=== Google Disconnect ===');
-    console.log('Session before:', req.session);
-    console.log('User before:', req.user);
-
-    if (req.user) {
-        // Remove all Google properties
-        GOOGLE_PROPERTIES.forEach(prop => {
-            delete req.user[prop];
-        });
-        // Save changes to session
-        req.session.save((err) => {
-            if (err) {
-                console.error('Error saving session after Google disconnect:', err);
-                return res.status(500).json({ error: 'Failed to save session' });
-            }
-            console.log('Session after:', req.session);
-            console.log('User after:', req.user);
+            // Save changes to session
+            req.session.save((err) => {
+                if (err) {
+                    console.error('Error saving session after Google disconnect:', err);
+                    return res.status(500).json({ error: 'Failed to save session' });
+                }
+                res.json({ success: true });
+            });
+        } else {
             res.json({ success: true });
-        });
-    } else {
-        res.json({ success: true });
+        }
+    } catch (error) {
+        console.error('Error disconnecting Google:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
-    console.log('========================\n');
 });
 
 module.exports = router;

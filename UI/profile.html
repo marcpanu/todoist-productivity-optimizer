@@ -4,38 +4,79 @@
         <h1>Profile</h1>
     </div>
     <div class="content-area">
+        <!-- User Profile Section -->
+        <div class="profile-section">
+            <h2>User Profile</h2>
+            <div class="profile-info">
+                <p>Username: <span id="profile-username">Loading...</span></p>
+                <button onclick="logout()" class="logout-button">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Integrations Section -->
         <div class="integrations-section">
             <h2>API Integrations</h2>
             
             <!-- Todoist Integration -->
             <div class="integration-card">
                 <div class="integration-header">
-                    <i class="fas fa-check-circle"></i>
+                    <i class="fab fa-todoist"></i>
                     <h3>Todoist</h3>
                 </div>
                 <div class="integration-status">
-                    <p>Status: <span id="todoist-status">Connected</span></p>
-                    <button onclick="window.location.href='/api/auth/todoist'" class="connect-button" id="todoist-connect">
-                        <i class="fas fa-plug"></i> Connect
-                    </button>
-                    <button onclick="handleTodoistDisconnect()" class="disconnect-button" id="todoist-disconnect">
-                        <i class="fas fa-unlink"></i> Disconnect
-                    </button>
+                    <div class="status-info">
+                        <p>Status: <span id="todoist-status">Checking...</span></p>
+                        <p class="user-info" id="todoist-user-info" style="display: none">
+                            Logged in as: <span id="todoist-email"></span>
+                        </p>
+                    </div>
+                    <div class="integration-error" id="todoist-error" style="display: none">
+                        <p class="error-message"></p>
+                        <button onclick="checkTodoistConnection()" class="retry-button">
+                            <i class="fas fa-sync"></i> Retry
+                        </button>
+                    </div>
+                    <div class="integration-buttons">
+                        <button onclick="connectTodoist()" class="connect-button" id="todoist-connect">
+                            <i class="fas fa-plug"></i> Connect
+                        </button>
+                        <button onclick="disconnectTodoist()" class="disconnect-button" id="todoist-disconnect">
+                            <i class="fas fa-unlink"></i> Disconnect
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Google Integration (Coming Soon) -->
-            <div class="integration-card disabled">
+            <!-- Google Integration -->
+            <div class="integration-card">
                 <div class="integration-header">
-                    <i class="fas fa-clock"></i>
-                    <h3>Google Calendar</h3>
-                    <span class="coming-soon">Coming Soon</span>
+                    <i class="fab fa-google"></i>
+                    <h3>Google Services</h3>
                 </div>
                 <div class="integration-status">
-                    <p>Status: <span>Not Connected</span></p>
-                    <button disabled class="connect-button">
-                        <i class="fas fa-plug"></i> Connect
-                    </button>
+                    <div class="status-info">
+                        <p>Status: <span id="google-status">Checking...</span></p>
+                        <p class="user-info" id="google-user-info" style="display: none">
+                            Logged in as: <span id="google-email"></span>
+                        </p>
+                        <p class="scope-info">Includes: Calendar and Gmail</p>
+                    </div>
+                    <div class="integration-error" id="google-error" style="display: none">
+                        <p class="error-message"></p>
+                        <button onclick="checkGoogleConnection()" class="retry-button">
+                            <i class="fas fa-sync"></i> Retry
+                        </button>
+                    </div>
+                    <div class="integration-buttons">
+                        <button onclick="connectGoogle()" class="connect-button" id="google-connect">
+                            <i class="fas fa-plug"></i> Connect
+                        </button>
+                        <button onclick="disconnectGoogle()" class="disconnect-button" id="google-disconnect">
+                            <i class="fas fa-unlink"></i> Disconnect
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

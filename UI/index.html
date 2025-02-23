@@ -11,7 +11,7 @@
         // Check session-based authentication
         async function checkAuth() {
             try {
-                const response = await fetch('/api/auth/check', {
+                const response = await fetch('/auth/status/app', {
                     credentials: 'include'
                 });
                 
@@ -32,7 +32,7 @@
         // Add logout function
         window.logout = async function() {
             try {
-                await fetch('/api/auth/logout', {
+                await fetch('/auth/logout', {
                     method: 'POST',
                     credentials: 'include'
                 });

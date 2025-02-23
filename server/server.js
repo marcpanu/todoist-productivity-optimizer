@@ -26,6 +26,9 @@ const googleGmailRouter = require('./routes/googleGmail');
 // Initialize express app
 const app = express();
 
+// Trust Vercel's proxy
+app.set('trust proxy', 1);
+
 // Configure rate limiting
 const limiter = rateLimit({
     windowMs: process.env.RATE_LIMIT_WINDOW_MS || 900000, // 15 minutes
@@ -38,10 +41,11 @@ const sessionConfig = {
     secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined,
+        secure: true,  // Always use secure in production
+        sameSite: 'none',  // Required for cross-site cookie in production
+        domain: '.vercel.app',  // Set domain for Vercel
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 };
@@ -91,9 +95,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 const corsOptions = {
-    origin: process.env.NODE_ENV === 'production'
-        ? 'https://todoist-productivity-optimizer.vercel.app'
-        : 'http://localhost:3000',
+    origin: 'https://todoist-productivity-optimizer.vercel.app',
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

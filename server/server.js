@@ -29,6 +29,17 @@ const app = express();
 // Trust Vercel's proxy
 app.set('trust proxy', 1);
 
+// Debug middleware to log all requests and session data
+app.use((req, res, next) => {
+    console.log('\n=== Request Debug ===');
+    console.log('URL:', req.url);
+    console.log('Method:', req.method);
+    console.log('Session:', req.session);
+    console.log('User:', req.user);
+    console.log('===================\n');
+    next();
+});
+
 // Configure rate limiting
 const limiter = rateLimit({
     windowMs: process.env.RATE_LIMIT_WINDOW_MS || 900000, // 15 minutes
@@ -37,7 +48,7 @@ const limiter = rateLimit({
 
 // Session configuration
 const sessionConfig = {
-    name: 'productivity-optimizer.sid', // Specific name for our session cookie
+    name: 'productivity-optimizer.sid',
     secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
     saveUninitialized: false,
@@ -49,6 +60,27 @@ const sessionConfig = {
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 };
+
+// Debug session events
+const sessionMiddleware = session(sessionConfig);
+app.use((req, res, next) => {
+    sessionMiddleware(req, res, () => {
+        if (req.session) {
+            const oldSave = req.session.save;
+            req.session.save = function(cb) {
+                console.log('\n=== Session Save Debug ===');
+                console.log('Session before save:', req.session);
+                return oldSave.call(this, (err) => {
+                    console.log('Session after save:', req.session);
+                    console.log('Save error:', err);
+                    console.log('========================\n');
+                    if (cb) cb(err);
+                });
+            };
+        }
+        next();
+    });
+});
 
 // Middleware to check if user is logged into the app
 const requireAppLogin = (req, res, next) => {
@@ -105,18 +137,19 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
 // Passport session serialization
 passport.serializeUser((user, done) => {
-    console.log('Serializing user:', user);
+    console.log('\n=== Serialize User ===');
+    console.log('User to serialize:', user);
     done(null, user);
 });
 
 passport.deserializeUser((user, done) => {
-    console.log('Deserializing user:', user);
+    console.log('\n=== Deserialize User ===');
+    console.log('User to deserialize:', user);
     done(null, user);
 });
 
@@ -131,6 +164,10 @@ const todoistStrategy = new OAuth2Strategy({
     passReqToCallback: true
 }, async (req, accessToken, refreshToken, profile, done) => {
     try {
+        console.log('\n=== Todoist OAuth Callback ===');
+        console.log('Current session:', req.session);
+        console.log('Current user:', req.user);
+
         // Get user info from Todoist
         const response = await axios.get('https://api.todoist.com/sync/v9/user', {
             headers: {
@@ -148,7 +185,10 @@ const todoistStrategy = new OAuth2Strategy({
 
         const user = req.user ? { ...req.user, ...todoistData } : todoistData;
         
-        console.log('Todoist OAuth callback user:', user);
+        console.log('Todoist data:', todoistData);
+        console.log('Merged user:', user);
+        console.log('=========================\n');
+
         return done(null, user);
     } catch (error) {
         console.error('Error in Todoist OAuth callback:', error);
@@ -180,6 +220,10 @@ passport.use('google', new GoogleStrategy({
     passReqToCallback: true
 }, async (req, accessToken, refreshToken, profile, done) => {
     try {
+        console.log('\n=== Google OAuth Callback ===');
+        console.log('Current session:', req.session);
+        console.log('Current user:', req.user);
+
         // Store tokens
         const oauth2Client = getOAuth2Client();
         oauth2Client.setCredentials({
@@ -198,7 +242,10 @@ passport.use('google', new GoogleStrategy({
 
         const user = req.user ? { ...req.user, ...googleData } : googleData;
 
-        console.log('Google OAuth callback user:', user);
+        console.log('Google data:', googleData);
+        console.log('Merged user:', user);
+        console.log('=========================\n');
+
         return done(null, user);
     } catch (error) {
         console.error('Error in Google OAuth callback:', error);
